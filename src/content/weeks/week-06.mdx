@@ -1,0 +1,246 @@
+---
+week: 6
+title: Tư duy metric, funnel, cohort và Pareto
+minutes: 270
+goals:
+  - "Định nghĩa một metric rõ ràng: tử số, mẫu số, kỳ, bộ lọc."
+  - "Phân biệt rate và count; nhận ra Goodhart's law và đặt metric đối trọng."
+  - "Đọc scatter plot và hệ số tương quan; biết con số đó nói được gì và không nói được gì."
+  - "Tính funnel, lập bảng cohort, đo mức độ tập trung (Pareto 80/20)."
+  - "Dùng pivot, melt, datetime và rolling trong pandas."
+media:
+  - kind: video
+    title: Video tóm tắt Tuần 6
+    lang: Tiếng Việt
+  - kind: audio
+    title: Podcast Tuần 6
+    lang: Tiếng Việt
+---
+import PythonCell from '../../components/PythonCell.tsx';
+import Quiz from '../../components/Quiz.tsx';
+import Situation from '../../components/Situation.tsx';
+
+Tuần cuối của Phase 2 chuyển từ "tính đúng con số" sang "**chọn đúng con số**". Một metric định nghĩa mơ hồ sẽ làm hai phòng ban cãi nhau dù cả hai đều tính đúng.
+
+## Bài 6.1. Tư duy metric <span class="badge lvl7">[7]</span>
+
+### Định nghĩa đủ 4 phần
+
+Mỗi metric cần ghi rõ:
+
+1. **Tử số:** đếm hoặc cộng cái gì? (số đơn bị huỷ)
+2. **Mẫu số:** so với cái gì? (số đơn đặt, hay số đơn đã xác nhận?)
+3. **Kỳ:** theo ngày đặt hay ngày huỷ? Tháng nào?
+4. **Bộ lọc:** có loại đơn test, đơn nội bộ, đơn trùng không?
+
+"Tỷ lệ huỷ đơn tháng 6 là 8%" chưa phải là một định nghĩa. "Số đơn đặt trong tháng 6 bị huỷ trước khi giao, chia cho tổng số đơn đặt trong tháng 6, đã loại đơn test" mới là định nghĩa.
+
+### Rate và count
+
+- **Count** (số tuyệt đối): 500 khiếu nại. Cho biết **quy mô** công việc.
+- **Rate** (tỷ lệ): 500 khiếu nại / 100.000 đơn = 0,5%. Cho biết **chất lượng**, so sánh được giữa các kỳ và các nhóm có quy mô khác nhau.
+
+Count tăng có thể chỉ vì quy mô tăng. Luôn hỏi: con số này nên là count hay rate? Thường nên báo **cả hai**.
+
+### Goodhart's law
+
+> Khi một thước đo trở thành mục tiêu, nó không còn là thước đo tốt nữa.
+
+Ví dụ: KPI là "số cuộc gọi xử lý mỗi giờ" → nhân viên cúp máy sớm, khách phải gọi lại. KPI là "số dòng code" → code dài dòng. Cách giảm rủi ro: đặt **metric đối trọng** (counter-metric) đi kèm, ví dụ số cuộc gọi kèm tỷ lệ khách gọi lại trong 7 ngày.
+
+<div class="callout">**Ý chính bắt buộc:** định nghĩa rõ tử số và mẫu số; phân biệt rate và count; Goodhart's law: metric thành mục tiêu thì bị "chơi", nên luôn có metric đối trọng.</div>
+
+<Quiz client:visible id="w06-q-metric" questions={[
+  { q: "Số khiếu nại tháng này tăng 20% so với tháng trước. Câu hỏi đầu tiên nên hỏi là gì?", options: ["Ai chịu trách nhiệm?", "Số đơn hàng có tăng không: tỷ lệ khiếu nại trên đơn thay đổi thế nào?", "Khiếu nại về sản phẩm nào?"], answer: 1, explain: "Count tăng có thể chỉ do quy mô tăng. Quy về rate trước rồi mới kết luận chất lượng xấu đi." },
+  { q: "Team bán hàng được thưởng theo 'số hợp đồng ký mới'. Rủi ro nào theo Goodhart's law?", options: ["Ký nhiều hợp đồng nhỏ, chiết khấu sâu hoặc khách dễ huỷ", "Không có rủi ro", "Doanh thu giảm vì ít hợp đồng"], answer: 0, explain: "Metric thành mục tiêu sẽ bị tối ưu theo cách dễ nhất. Cần đối trọng: giá trị hợp đồng, tỷ lệ huỷ trong 90 ngày, margin." },
+  { q: "Hai báo cáo cùng tên 'tỷ lệ chuyển đổi' cho ra 3% và 12%. Nguyên nhân khả năng cao nhất?", options: ["Một báo cáo bị lỗi code", "Khác mẫu số: một báo cáo chia cho lượt truy cập, một chia cho số người thêm vào giỏ", "Dữ liệu khác ngày"], answer: 1, explain: "Cùng tên metric nhưng khác định nghĩa tử số hoặc mẫu số là nguyên nhân phổ biến nhất của 'hai con số không khớp'." },
+]} />
+
+## Bài 6.2. Tương quan và scatter plot <span class="badge">[6]</span>
+
+**Scatter plot** đặt mỗi quan sát thành một điểm theo hai biến. **Hệ số tương quan** (Pearson, ký hiệu r) đo mức độ hai biến cùng tăng giảm **theo đường thẳng**, từ −1 đến 1:
+
+| r | Đọc là |
+| --- | --- |
+| gần 1 | Cùng tăng, khá thẳng hàng |
+| gần 0 | Không có quan hệ **tuyến tính** (có thể vẫn có quan hệ cong) |
+| gần −1 | Một biến tăng thì biến kia giảm |
+
+Ba điều tương quan **không** nói được:
+
+1. **Nhân quả.** Bán kem và số vụ đuối nước cùng tăng vào mùa hè; kem không gây đuối nước.
+2. **Quan hệ phi tuyến.** r ≈ 0 vẫn có thể là đường cong rất rõ (nhớ Anscombe bộ II).
+3. **Độ lớn tác động.** r = −0,5 không có nghĩa "tăng chiết khấu 1% thì lợi nhuận giảm 0,5".
+
+<PythonCell client:visible id="w06-py-corr" title="Discount và Profit" code={`import pandas as pd
+import matplotlib.pyplot as plt
+df = pd.read_csv("superstore_sample.csv").drop_duplicates()
+
+r = ...                      # gợi ý: df["Discount"].corr(df["Profit"])
+
+fig, ax = plt.subplots(figsize=(6, 3.6))
+ax.scatter(df["Discount"], df["Profit"], alpha=0.3, s=10)
+ax.axhline(0, color="grey", linewidth=0.8)
+ax.set_xlabel("Discount"); ax.set_ylabel("Profit")
+ax.set_title(f"r = {r:.2f}")
+
+# Lợi nhuận trung bình theo mức chiết khấu: dễ đọc hơn scatter
+df.groupby("Discount")["Profit"].agg(["count", "mean"]).round(1)`}
+tests={[
+  { code: "assert abs(r - df['Discount'].corr(df['Profit'])) < 1e-9, 'r chưa đúng'", message: "Tính đúng hệ số tương quan" },
+  { code: "assert r < 0, 'Kỳ vọng tương quan âm'", message: "Tương quan âm: chiết khấu càng sâu, lợi nhuận càng thấp" },
+]} />
+
+Viết một câu cho con số này. Ví dụ: "Trong dữ liệu, các dòng chiết khấu sâu có lợi nhuận thấp hơn rõ rệt (r ≈ −0,47). Con số này **chưa chứng minh** chiết khấu gây lỗ: có thể sản phẩm khó bán mới bị giảm giá sâu."
+
+## Bài 6.3. Funnel và cohort <span class="badge">[6]</span>
+
+### Funnel (phễu)
+
+Funnel theo dõi người dùng qua **các bước nối tiếp**: truy cập → thêm vào giỏ → checkout → mua.
+
+- **Tỷ lệ từng bước** = số ở bước sau / số ở bước trước.
+- **Tỷ lệ tổng** = số ở bước cuối / số ở bước đầu = **tích** các tỷ lệ từng bước.
+- Bước có tỷ lệ thấp nhất là chỗ rơi rụng lớn nhất, thường là nơi nên cải thiện trước.
+
+<PythonCell client:visible id="w06-py-funnel" title="Tính funnel" code={`import pandas as pd
+
+phieu = pd.Series({"Truy cập": 10000, "Thêm vào giỏ": 3000, "Checkout": 1200, "Mua": 900})
+
+ty_le_buoc = ...             # gợi ý: phieu / phieu.shift(1), bỏ bước đầu bằng .iloc[1:]
+ty_le_tong = ...             # bước cuối / bước đầu
+buoc_roi_nhieu_nhat = ...    # tên bước có ty_le_buoc nhỏ nhất: ty_le_buoc.idxmin()
+
+print("Tỷ lệ tổng:", f"{ty_le_tong:.1%}")
+print("Rơi rụng lớn nhất ở bước:", buoc_roi_nhieu_nhat)
+ty_le_buoc.round(3)`}
+tests={[
+  { code: "assert abs(ty_le_tong - 0.09) < 1e-9, f'ty_le_tong đang là {ty_le_tong}, cần 900/10000'", message: "Tỷ lệ chuyển đổi tổng = 9%" },
+  { code: "assert abs(ty_le_buoc.prod() - ty_le_tong) < 1e-9, 'Tích các bước phải bằng tỷ lệ tổng'", message: "Tỷ lệ tổng = tích các tỷ lệ từng bước" },
+  { code: "assert buoc_roi_nhieu_nhat == 'Thêm vào giỏ', f'Đang ra {buoc_roi_nhieu_nhat}'", message: "Rơi rụng lớn nhất: từ Truy cập sang Thêm vào giỏ (30%)" },
+]} />
+
+### Cohort
+
+**Cohort** là nhóm khách có chung một mốc bắt đầu, ví dụ cùng năm mua lần đầu. Bảng cohort cho biết mỗi nhóm còn quay lại bao nhiêu % ở các kỳ sau.
+
+Vì sao cần cohort: tổng số khách hoạt động có thể tăng nhờ khách mới, che mất việc khách cũ đang rời bỏ. Cohort tách hai hiện tượng đó ra.
+
+<PythonCell client:visible id="w06-py-cohort" title="Cohort theo năm mua đầu tiên" code={`import pandas as pd
+df = pd.read_csv("superstore_sample.csv").drop_duplicates()
+df["Order Date"] = pd.to_datetime(df["Order Date"])
+df["nam"] = df["Order Date"].dt.year
+
+# Năm mua đầu tiên của từng khách
+nam_dau = df.groupby("Customer ID")["nam"].min().rename("cohort")
+df = df.merge(nam_dau, on="Customer ID", how="left", validate="many_to_one")
+
+# Số khách mua ở mỗi năm, theo cohort
+so_khach = df.groupby(["cohort", "nam"])["Customer ID"].nunique().unstack()
+quy_mo = ...                 # quy mô mỗi cohort: số khách ở chính năm cohort. Gợi ý: nam_dau.value_counts().sort_index()
+
+ty_le_quay_lai = so_khach.div(quy_mo, axis=0)
+ty_le_quay_lai.round(2)`}
+tests={[
+  { code: "assert quy_mo.sum() == df['Customer ID'].nunique(), 'Tổng quy mô các cohort phải bằng số khách duy nhất'", message: "Tổng quy mô các cohort = số khách duy nhất" },
+  { code: "assert (ty_le_quay_lai.max(axis=1).round(9) == 1).all(), 'Năm đầu của mỗi cohort phải là 100%'", message: "Năm đầu tiên của mỗi cohort là 100%" },
+]} />
+
+## Bài 6.4. Pareto: mức độ tập trung <span class="badge">[6]</span>
+
+**Nguyên lý Pareto (80/20):** một phần nhỏ nguyên nhân tạo ra phần lớn kết quả. 80/20 chỉ là hình ảnh; con số thật cần đo. Câu hỏi business: top 20% khách hàng (sản phẩm, cửa hàng) đóng góp bao nhiêu % doanh thu?
+
+- Tập trung cao: tập trung chăm sóc nhóm đầu, nhưng **rủi ro** lớn nếu mất vài khách.
+- Tập trung thấp: doanh thu phân tán, ít phụ thuộc, nhưng khó ưu tiên.
+
+<PythonCell client:visible id="w06-py-pareto" title="Top 20% khách hàng đóng góp bao nhiêu?" code={`import pandas as pd
+import matplotlib.pyplot as plt
+df = pd.read_csv("superstore_sample.csv").drop_duplicates()
+
+theo_khach = df.groupby("Customer ID")["Sales"].sum().sort_values(ascending=False)
+ty_trong = ...               # tỷ trọng Sales của từng khách: theo_khach / theo_khach.sum()
+
+n_top = int(len(theo_khach) * 0.2)
+ty_trong_top20 = ...         # tổng tỷ trọng của n_top khách đầu: ty_trong.iloc[:n_top].sum()
+
+print(f"{len(theo_khach)} khách, top {n_top} khách đóng góp {ty_trong_top20:.1%} Sales")
+
+fig, ax = plt.subplots(figsize=(6, 3.4))
+ax.plot(range(1, len(ty_trong) + 1), ty_trong.cumsum().values)
+ax.axvline(n_top, color="grey", linestyle="--")
+ax.set_xlabel("Số khách (xếp từ lớn đến nhỏ)"); ax.set_ylabel("Tỷ trọng Sales cộng dồn")`}
+tests={[
+  { code: "assert abs(ty_trong.sum() - 1) < 1e-9, 'Tổng tỷ trọng mọi khách phải bằng 100%'", message: "Tổng tỷ trọng của mọi khách = 100%" },
+  { code: "assert abs(ty_trong_top20 - theo_khach.iloc[:n_top].sum() / theo_khach.sum()) < 1e-9, 'ty_trong_top20 chưa đúng'", message: "Tính đúng tỷ trọng top 20%" },
+]} />
+
+Với dữ liệu mẫu, top 20% khách chỉ đóng góp khoảng 39% Sales: **thấp hơn nhiều** so với hình ảnh 80/20. Đừng mặc định 80/20; hãy đo.
+
+## Thực hành Python: pivot, melt, datetime, rolling <span class="badge">[6]</span>
+
+- **pivot / pivot_table**: dạng dài → dạng rộng (mỗi Category một cột). Dễ đọc cho người xem.
+- **melt**: dạng rộng → dạng dài. Dễ groupby, dễ vẽ.
+- **datetime**: `.dt.year`, `.dt.month`, `.dt.to_period("M")`, `.dt.day_name()`.
+- **rolling**: trung bình trượt, làm mượt nhiễu để thấy xu hướng.
+
+<PythonCell client:visible id="w06-py-reshape" title="Pivot, melt và trung bình trượt 3 tháng" code={`import pandas as pd
+import matplotlib.pyplot as plt
+df = pd.read_csv("superstore_sample.csv").drop_duplicates()
+df["thang"] = pd.to_datetime(df["Order Date"]).dt.to_period("M").dt.to_timestamp()
+
+# Dài → rộng
+rong = df.pivot_table(index="thang", columns="Category", values="Sales", aggfunc="sum")
+
+# Rộng → dài
+dai = ...                    # gợi ý: rong.reset_index().melt(id_vars="thang", var_name="Category", value_name="Sales")
+
+# Tổng theo tháng và trung bình trượt 3 tháng
+tong_thang = rong.sum(axis=1)
+truot_3 = ...                # gợi ý: tong_thang.rolling(3).mean()
+
+fig, ax = plt.subplots(figsize=(8, 3.4))
+ax.plot(tong_thang.index, tong_thang.values, alpha=0.4, label="Theo tháng")
+ax.plot(truot_3.index, truot_3.values, label="Trung bình trượt 3 tháng")
+ax.legend()
+dai.head()`}
+tests={[
+  { code: "assert abs(dai['Sales'].sum() - df['Sales'].sum()) < 1e-6, 'Tổng Sales sau melt phải khớp bảng gốc'", message: "Sau melt: tổng Sales khớp" },
+  { code: "assert len(dai) == rong.shape[0] * rong.shape[1], 'melt phải ra số tháng × số Category dòng'", message: "melt ra đúng số dòng" },
+  { code: "assert truot_3.isna().sum() == 2 and abs(truot_3.iloc[2] - tong_thang.iloc[:3].mean()) < 1e-6", message: "Trung bình trượt đúng (2 tháng đầu chưa đủ dữ liệu)" },
+]} />
+
+## Luyện tập tình huống
+
+<Situation client:visible id="w06-th-huy" title="Tình huống: hai định nghĩa tỷ lệ huỷ đơn" context="Tháng 6: 10.000 đơn được đặt, 8.000 đơn được xác nhận (2.000 đơn huỷ trước khi xác nhận: hết hàng, khách đổi ý), và 400 đơn huỷ sau khi đã xác nhận. Phòng Vận hành báo tỷ lệ huỷ 24%, phòng Kho báo 5%." question="Mỗi phòng đang dùng định nghĩa nào? Khi nào dùng định nghĩa nào? Nên báo cáo thế nào để không cãi nhau?">
+
+**Đáp án mẫu**
+
+- **Vận hành:** (2.000 + 400) / 10.000 = **24%**, mẫu số là tổng đơn đặt. Đo **trải nghiệm đặt hàng** tổng thể: khách đặt 100 đơn thì 24 đơn không thành.
+- **Kho:** 400 / 8.000 = **5%**, mẫu số là đơn đã xác nhận. Đo **huỷ sau cam kết**: lỗi giao hàng, khách đổi ý sau khi chốt.
+- Cả hai đều đúng, nhưng trả lời câu hỏi khác nhau. Báo cáo nên **ghi rõ tử số và mẫu số** ngay cạnh con số, đặt tên khác nhau (tỷ lệ huỷ trên đơn đặt, tỷ lệ huỷ sau xác nhận), và thống nhất một định nghĩa chính cho KPI.
+
+**Lỗi hay gặp:** so 24% của tháng này với 5% của tháng trước; tranh luận con số nào "đúng" thay vì hỏi đang đo cái gì.
+
+</Situation>
+
+<Situation client:visible id="w06-th-ticket" title="Tình huống: KPI số ticket đóng mỗi ngày" context="Trưởng nhóm CSKH đặt KPI: mỗi nhân viên đóng ít nhất 40 ticket mỗi ngày, ai vượt sẽ được thưởng. Sau 2 tháng, số ticket đóng mỗi ngày tăng 35%, nhưng điểm hài lòng khách hàng giảm." question="Điều gì có thể đã xảy ra? Bạn đề xuất đo thế nào?">
+
+**Đáp án mẫu**
+
+- **Goodhart's law:** metric thành mục tiêu thì bị tối ưu theo cách dễ nhất. Có thể nhân viên **đóng vội** ticket chưa giải quyết xong, **tách** một vấn đề thành nhiều ticket, chọn ticket dễ làm trước, đẩy ticket khó sang người khác.
+- Dấu hiệu kiểm tra: tỷ lệ ticket bị **mở lại**, số ticket trên mỗi khách, thời gian xử lý ticket khó.
+- **Đề xuất:** giữ số ticket đóng như metric quy mô, nhưng thêm **metric đối trọng**: tỷ lệ mở lại trong 7 ngày, điểm hài lòng sau ticket (CSAT), tỷ lệ giải quyết ngay lần đầu. Thưởng dựa trên tổ hợp, không dựa trên một con số.
+
+**Lỗi hay gặp:** kết luận nhân viên làm việc hiệu quả hơn chỉ vì count tăng.
+
+</Situation>
+
+## Tóm tắt tuần và chuẩn bị Checkpoint 2
+
+- Metric = tử số + mẫu số + kỳ + bộ lọc. Báo cả count và rate.
+- Mỗi KPI cần một metric đối trọng (Goodhart).
+- Tương quan: hướng và độ chặt của quan hệ tuyến tính; không phải nhân quả.
+- Funnel: tỷ lệ tổng = tích tỷ lệ từng bước; tìm bước rơi rụng lớn nhất.
+- Cohort tách khách mới và khách cũ; Pareto: đo, đừng mặc định 80/20.
+
+<div class="callout">**Checkpoint 2** (cuối tuần này): phần A giải thích 5 khái niệm [7] (mean và median, Simpson, fan-out, average of averages, tư duy metric) closed-book; phần B 10 bài thực hành trên Superstore, đã có ở các ô code tuần 4–6; phần C 5 tình huống (Berkeley, Anscombe, tỷ lệ huỷ, KPI ticket, dropna). Đạt khi đủ ý chính, 100% assert pass, và đúng ≥ 4/5 tình huống. Xem tóm tắt trong Sổ tay Phase 2.</div>

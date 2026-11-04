@@ -1,0 +1,298 @@
+---
+week: 5
+title: Data quality, join và bẫy trung bình
+minutes: 270
+goals:
+  - "Kiểm tra dữ liệu theo 5 chiều chất lượng: đủ, đúng, nhất quán, kịp thời, duy nhất."
+  - "Nhận ra và chặn lỗi nhân dòng (fan-out) khi merge."
+  - "Phân biệt weighted average và average of averages; biết cách nào đúng cho tỷ lệ."
+  - "Giải thích Simpson's paradox bằng tỷ trọng (mix) giữa các nhóm."
+  - "Trước khi xử lý missing values, luôn hỏi: vì sao thiếu?"
+  - "Đối soát tổng sau mỗi bước biến đổi bằng assert."
+media:
+  - kind: video
+    title: Video tóm tắt Tuần 5
+    lang: Tiếng Việt
+  - kind: audio
+    title: Podcast Tuần 5
+    lang: Tiếng Việt
+---
+import PythonCell from '../../components/PythonCell.tsx';
+import Quiz from '../../components/Quiz.tsx';
+import Situation from '../../components/Situation.tsx';
+
+Tuần 4 dạy cách tóm tắt dữ liệu. Tuần này dạy cách **không bị dữ liệu lừa**: dữ liệu bẩn, join sai, và trung bình tính sai cách là ba nguồn gây ra con số sai phổ biến nhất trong báo cáo.
+
+## Bài 5.1. Năm chiều chất lượng dữ liệu <span class="badge lvl7">[7]</span>
+
+| Chiều | Câu hỏi kiểm tra | Ví dụ lỗi | Check bằng pandas |
+| --- | --- | --- | --- |
+| **Đủ** (completeness) | Có thiếu dòng, thiếu giá trị không? | Cột Region bị trống | `df.isna().sum()` |
+| **Đúng** (validity/accuracy) | Giá trị có hợp lệ không? | Sales âm, Quantity = 0, ngày giao trước ngày đặt | lọc điều kiện, `describe()` |
+| **Nhất quán** (consistency) | Cùng một thứ có được ghi giống nhau không? | 1 Product ID có 2 tên; "HN" và "Hà Nội" | `groupby(...).nunique()` |
+| **Kịp thời** (timeliness) | Dữ liệu có cập nhật đến kỳ cần không? | Báo cáo tháng 6 nhưng dữ liệu chỉ đến 20/6 | `df["Order Date"].max()` |
+| **Duy nhất** (uniqueness) | Có dòng trùng không? | Một dòng bị nhập 2 lần | `df.duplicated().sum()` |
+
+Thói quen: **chạy bộ kiểm tra này mỗi khi nhận dữ liệu mới**, trước khi tính bất cứ con số nào. Ghi lại lỗi tìm được và cách xử lý.
+
+<PythonCell client:visible id="w05-py-dq" title="Bộ kiểm tra chất lượng cho Superstore" code={`import pandas as pd
+df = pd.read_csv("superstore_sample.csv")
+df["Order Date"] = pd.to_datetime(df["Order Date"])
+df["Ship Date"] = pd.to_datetime(df["Ship Date"])
+
+# Duy nhất: số dòng trùng hoàn toàn
+so_dong_trung = ...          # gợi ý: df.duplicated().sum()
+
+# Đủ: tổng số ô bị thiếu
+so_o_thieu = ...             # gợi ý: df.isna().sum().sum()
+
+# Đúng: giá trị bất thường
+sales_khong_duong = (df["Sales"] <= 0).sum()
+giao_truoc_dat = ...         # số dòng có Ship Date trước Order Date
+
+# Nhất quán: số Product ID có nhiều hơn 1 tên sản phẩm
+ten_moi_ma = df.groupby("Product ID")["Product Name"].nunique()
+ma_nhieu_ten = ...           # đếm số mã có ten_moi_ma > 1
+
+# Kịp thời: dữ liệu đến ngày nào?
+print("Từ", df["Order Date"].min().date(), "đến", df["Order Date"].max().date())
+print("Trùng:", so_dong_trung, "| Thiếu:", so_o_thieu, "| Sales ≤ 0:", sales_khong_duong,
+      "| Giao trước đặt:", giao_truoc_dat, "| Mã nhiều tên:", ma_nhieu_ten)
+ten_moi_ma[ten_moi_ma > 1]`}
+tests={[
+  { code: "assert so_dong_trung == df.duplicated().sum(), 'so_dong_trung chưa đúng'", message: "Đếm đúng số dòng trùng" },
+  { code: "assert so_o_thieu == df.isna().sum().sum(), 'so_o_thieu chưa đúng'", message: "Đếm đúng số ô thiếu" },
+  { code: "assert giao_truoc_dat == (df['Ship Date'] < df['Order Date']).sum(), 'giao_truoc_dat chưa đúng'", message: "Đếm đúng số dòng giao trước khi đặt" },
+  { code: "assert ma_nhieu_ten == (ten_moi_ma > 1).sum(), 'ma_nhieu_ten chưa đúng'", message: "Đếm đúng số mã có nhiều tên" },
+  { code: "assert so_dong_trung + ma_nhieu_ten >= 1, 'Dataset có ít nhất 1 lỗi thật, hãy tìm lại'", message: "Phát hiện được ít nhất 1 lỗi thật" },
+]} />
+
+Bộ kiểm tra tìm ra 2 lỗi thật: **1 dòng trùng** (Row ID 11) và **1 Product ID có 2 tên**. Lỗi thứ hai sẽ gây ra fan-out ở bài tiếp theo.
+
+## Bài 5.2. Fan-out: lỗi nhân dòng khi join <span class="badge lvl7">[7]</span>
+
+Bạn có bảng **fact** (mỗi dòng là một sản phẩm trong một đơn) và bảng **dimension** sản phẩm (mỗi mã một dòng). Merge hai bảng để lấy tên sản phẩm là việc làm hằng ngày.
+
+Vấn đề: nếu bảng dimension có **khóa bị trùng** (một mã xuất hiện 2 dòng), mỗi dòng fact khớp với mã đó sẽ bị **nhân đôi**. Tổng Sales tăng lên mà không có lỗi nào được báo.
+
+<div class="callout">**Ý chính bắt buộc:** join với bảng có khóa trùng → nhân dòng → tổng bị phóng đại.</div>
+
+Hai cách chặn:
+
+1. `assert len(sau) == len(truoc)` ngay sau merge (với left join từ fact sang dimension).
+2. `pd.merge(..., validate="many_to_one")`: pandas báo lỗi ngay nếu bảng bên phải có khóa trùng.
+
+<PythonCell client:visible id="w05-py-fanout" title="Tự tạo và chặn fan-out" code={`import pandas as pd
+df = pd.read_csv("superstore_sample.csv").drop_duplicates()
+
+fact = df[["Order ID", "Product ID", "Sales"]]
+dim_sp = df[["Product ID", "Product Name"]].drop_duplicates()   # bảng sản phẩm "tự làm"
+
+print("Số mã:", dim_sp["Product ID"].nunique(), "| Số dòng dim:", len(dim_sp))
+
+sai = fact.merge(dim_sp, on="Product ID", how="left")
+print("Trước:", len(fact), "dòng, Sales", round(fact["Sales"].sum(), 2))
+print("Sau  :", len(sai), "dòng, Sales", round(sai["Sales"].sum(), 2))
+
+# Sửa: mỗi mã chỉ giữ 1 tên, rồi merge có validate
+dim_dung = ...               # gợi ý: dim_sp.drop_duplicates("Product ID")
+dung = fact.merge(dim_dung, on="Product ID", how="left", validate="many_to_one")
+assert len(dung) == len(fact)
+print("Sau khi sửa:", len(dung), "dòng")`}
+tests={[
+  { code: "assert len(sai) > len(fact), 'Merge với dim_sp phải làm tăng số dòng'", message: "Quan sát được fan-out: số dòng tăng" },
+  { code: "assert dim_dung['Product ID'].is_unique, 'dim_dung vẫn còn mã trùng'", message: "Bảng dimension đã có khóa duy nhất" },
+  { code: "assert len(dung) == len(fact) and abs(dung['Sales'].sum() - fact['Sales'].sum()) < 1e-6", message: "Sau khi sửa: số dòng và tổng Sales khớp" },
+]} />
+
+Trong thực tế, chọn tên nào cho mã bị trùng là quyết định nghiệp vụ (tên mới nhất, tên trong hệ thống gốc). Quan trọng là phát hiện được và ghi lại.
+
+## Bài 5.3. Weighted average và average of averages <span class="badge lvl7">[7]</span>
+
+Hai cửa hàng:
+
+| Cửa hàng | Doanh thu | Lợi nhuận | Margin |
+| --- | --- | --- | --- |
+| A | 1.000 | 200 | 20% |
+| B | 100 | 0 | 0% |
+
+- **Average of averages:** (20% + 0%) / 2 = **10%**.
+- **Tỷ lệ tổng (weighted average):** (200 + 0) / (1.000 + 100) = **18,2%**.
+
+Margin của cả công ty là 18,2%. Con số 10% coi cửa hàng nhỏ B nặng ngang cửa hàng lớn A. Khi các nhóm có **quy mô khác nhau**, trung bình của các tỷ lệ không bằng tỷ lệ tổng.
+
+<div class="callout">**Ý chính bắt buộc:** trung bình của các tỷ lệ ≠ tỷ lệ tổng, khi các nhóm có quy mô khác nhau. Muốn tỷ lệ tổng: cộng tử số, cộng mẫu số, rồi mới chia.</div>
+
+<PythonCell client:visible id="w05-py-margin" title="Profit margin theo Region: 2 cách" code={`import pandas as pd
+df = pd.read_csv("superstore_sample.csv").drop_duplicates()
+
+# Cách 1: trung bình margin của từng dòng
+df["margin_dong"] = df["Profit"] / df["Sales"]
+cach_1 = df.groupby("Region")["margin_dong"].mean()
+
+# Cách 2: tổng Profit / tổng Sales của mỗi vùng
+tong = df.groupby("Region")[["Profit", "Sales"]].sum()
+cach_2 = ...
+
+pd.DataFrame({"TB margin từng dòng": cach_1, "Tổng Profit / tổng Sales": cach_2}).round(4)`}
+tests={[
+  { code: "assert abs(cach_2['East'] - df[df.Region=='East'].Profit.sum() / df[df.Region=='East'].Sales.sum()) < 1e-9, 'cach_2 = tong[\"Profit\"] / tong[\"Sales\"]'", message: "Cách 2 tính đúng" },
+  { code: "assert (abs(cach_1 - cach_2) > 0.01).all(), 'Hai cách phải ra kết quả khác nhau'", message: "Hai cách cho kết quả khác nhau ở mọi vùng" },
+]} />
+
+Cách 2 là margin thật của mỗi vùng. Cách 1 thấp hơn vì các dòng nhỏ (giá trị thấp, chiết khấu sâu, margin âm) được tính nặng ngang các dòng lớn.
+
+## Bài 5.4. Simpson's paradox <span class="badge lvl7">[7]</span>
+
+**Simpson's paradox:** một xu hướng đúng trong **từng nhóm** lại đảo ngược khi **gộp** các nhóm lại.
+
+Ví dụ nổi tiếng là tuyển sinh sau đại học UC Berkeley năm 1973. Tính chung, tỷ lệ đỗ của nam là 44,5%, của nữ là 30,4%. Nhìn vào thì có vẻ trường phân biệt giới tính. Nhưng khi tách theo khoa, ở phần lớn các khoa tỷ lệ đỗ của nữ **bằng hoặc cao hơn** nam.
+
+Lý do là **mix**: nữ nộp đơn nhiều hơn vào các khoa khó đỗ (tỷ lệ đỗ chung thấp), còn nam nộp nhiều vào các khoa dễ đỗ. Tỷ lệ chung của nữ bị kéo xuống bởi chỗ họ nộp đơn, không phải bởi việc họ bị chấm khắt hơn.
+
+<div class="callout">**Ý chính bắt buộc:** xu hướng trong từng nhóm đảo ngược khi gộp, do tỷ trọng (mix) giữa các nhóm khác nhau.</div>
+
+Trong business: "giá trung bình mỗi đơn giảm" có thể chỉ vì tỷ trọng khách mua hàng rẻ tăng, trong khi giá ở **mọi** phân khúc đều tăng. Trước khi kết luận từ một con số gộp, hãy tách theo nhóm chính.
+
+<Quiz client:visible id="w05-q-traps" questions={[
+  { q: "Merge bảng đơn hàng (5.000 dòng) với bảng khách hàng, kết quả có 5.240 dòng. Khả năng cao nhất là gì?", options: ["Bảng khách hàng có Customer ID bị trùng", "Bảng đơn hàng có dòng trùng", "Merge đúng, không có vấn đề"], answer: 0, explain: "Left join từ fact sang dimension không được làm tăng số dòng. Tăng nghĩa là khóa bên dimension bị trùng: fan-out." },
+  { q: "3 chi nhánh có tỷ lệ chuyển đổi 10%, 20%, 30%. Tỷ lệ chuyển đổi toàn công ty là bao nhiêu?", options: ["20%", "Không đủ thông tin: cần số khách của từng chi nhánh", "60%"], answer: 1, explain: "20% chỉ đúng khi 3 chi nhánh có quy mô bằng nhau. Tỷ lệ tổng = tổng chuyển đổi / tổng khách." },
+  { q: "Giá trị trung bình mỗi đơn giảm 5%, nhưng ở cả 3 phân khúc khách hàng đều tăng. Điều gì đã xảy ra?", options: ["Số liệu sai", "Tỷ trọng đơn từ phân khúc giá trị thấp tăng lên (mix)", "Lạm phát"], answer: 1, explain: "Đây là Simpson's paradox: mix thay đổi làm con số gộp đi ngược xu hướng trong từng nhóm." },
+]} />
+
+<PythonCell client:visible id="w05-py-berkeley" title="Tái hiện UC Berkeley 1973" code={`import pandas as pd
+
+bk = pd.DataFrame({
+    "khoa":   list("ABCDEF") * 2,
+    "gioi":   ["Nam"] * 6 + ["Nữ"] * 6,
+    "nop":    [825, 560, 325, 417, 191, 373,   108, 25, 593, 375, 393, 341],
+    "do":     [512, 353, 120, 138,  53,  22,    89, 17, 202, 131,  94,  24],
+})
+
+# Tỷ lệ đỗ tổng theo giới: cộng tử, cộng mẫu rồi mới chia
+tong = bk.groupby("gioi")[["do", "nop"]].sum()
+ty_le_tong = ...             # Series: tong["do"] / tong["nop"]
+
+# Tỷ lệ đỗ theo từng khoa
+bk["ty_le"] = bk["do"] / bk["nop"]
+theo_khoa = bk.pivot(index="khoa", columns="gioi", values="ty_le")
+
+# Khoa nào nữ đỗ cao hơn nam?
+khoa_nu_cao_hon = ...        # list các khoa có theo_khoa["Nữ"] > theo_khoa["Nam"]
+
+print(ty_le_tong.round(3))
+print("Khoa nữ cao hơn:", khoa_nu_cao_hon)
+theo_khoa.round(3)`}
+tests={[
+  { code: "assert abs(ty_le_tong['Nam'] - 1198/2691) < 1e-6 and abs(ty_le_tong['Nữ'] - 557/1835) < 1e-6, 'ty_le_tong chưa đúng'", message: "Tỷ lệ tổng: nam 44,5%, nữ 30,4%" },
+  { code: "assert sorted(khoa_nu_cao_hon) == ['A', 'B', 'D', 'F'], f'Đang ra {khoa_nu_cao_hon}'", message: "Nữ đỗ cao hơn ở 4/6 khoa: A, B, D, F" },
+]} />
+
+Thêm một bước: tính tỷ lệ đỗ chung của từng khoa và tỷ trọng đơn của nữ vào từng khoa. Bạn sẽ thấy hơn 90% đơn của nữ nộp vào C, D, E, F, nơi tỷ lệ đỗ chung chỉ 6–35%, trong khi một nửa đơn của nam nộp vào A, B (tỷ lệ đỗ trên 60%).
+
+## Bài 5.5. Missing values: hỏi "vì sao thiếu?" trước <span class="badge">[6]</span>
+
+Có ba kiểu thiếu, và cách xử lý phụ thuộc vào kiểu:
+
+| Kiểu thiếu | Ý nghĩa | Ví dụ | Xoá (dropna) có sao không? |
+| --- | --- | --- | --- |
+| **Ngẫu nhiên hoàn toàn** | Thiếu không liên quan đến gì cả | Lỗi đường truyền mất vài dòng | Ít ảnh hưởng, chỉ mất cỡ mẫu |
+| **Ngẫu nhiên theo biến khác** | Thiếu liên quan đến một biến **đã quan sát** | Khách online hay bỏ trống số điện thoại | Lệch nếu không tách theo biến đó |
+| **Không ngẫu nhiên** | Thiếu liên quan đến **chính giá trị bị thiếu** | Người thu nhập cao không khai thu nhập | **Lệch nặng**: mẫu còn lại không đại diện |
+
+Hai câu hỏi bắt buộc trước khi xử lý: **vì sao thiếu? Xoá đi thì mẫu còn đại diện không?** Ghi câu trả lời ra trước, rồi mới viết code.
+
+Các cách xử lý thường gặp: xoá dòng (`dropna`), điền giá trị (`fillna` bằng median, bằng giá trị theo nhóm, hoặc bằng 0 khi thiếu nghĩa là "không có"), hoặc giữ nguyên và báo cáo riêng nhóm thiếu.
+
+<PythonCell client:visible id="w05-py-missing" title="Mô phỏng: khi thiếu không ngẫu nhiên" code={`import numpy as np
+import pandas as pd
+
+rng = np.random.default_rng(7)
+thu_nhap = rng.lognormal(mean=2.7, sigma=0.5, size=2000)   # triệu đồng/tháng
+ks = pd.DataFrame({"thu_nhap": thu_nhap})
+
+# Người thu nhập càng cao càng hay bỏ trống câu hỏi
+p_bo_trong = np.where(ks["thu_nhap"] > ks["thu_nhap"].quantile(0.6), 0.6, 0.1)
+ks["tra_loi"] = ks["thu_nhap"].where(rng.random(2000) > p_bo_trong)
+
+ty_le_thieu = ...            # tỷ lệ ô thiếu của cột tra_loi
+tb_that = ks["thu_nhap"].mean()
+tb_dropna = ...              # mean của tra_loi sau khi dropna
+
+print(f"Thiếu {ty_le_thieu:.0%} | TB thật {tb_that:.1f} | TB sau dropna {tb_dropna:.1f}")`}
+tests={[
+  { code: "assert abs(ty_le_thieu - ks['tra_loi'].isna().mean()) < 1e-9, 'ty_le_thieu = ks[\"tra_loi\"].isna().mean()'", message: "Tính đúng tỷ lệ thiếu" },
+  { code: "assert abs(tb_dropna - ks['tra_loi'].dropna().mean()) < 1e-9, 'tb_dropna chưa đúng'", message: "Tính đúng trung bình sau dropna" },
+  { code: "assert tb_dropna < tb_that, 'Thiếu không ngẫu nhiên phải kéo trung bình xuống'", message: "dropna làm trung bình thấp hơn thực tế" },
+]} />
+
+## Thực hành: pipeline có đối soát <span class="badge lvl7">[7]</span>
+
+Mỗi bước biến đổi (lọc, xoá trùng, merge, groupby, pivot) đều có thể làm mất hoặc nhân dòng. **Đối soát tổng** sau từng bước là cách rẻ nhất để bắt lỗi. Nếu tổng thay đổi, bạn phải giải thích được vì sao.
+
+<PythonCell client:visible id="w05-py-pipeline" title="Đọc → làm sạch → tổng hợp → pivot" code={`import pandas as pd
+
+# Bước 1: đọc
+tho = pd.read_csv("superstore_sample.csv")
+tong_tho = tho["Sales"].sum()
+
+# Bước 2: chuyển kiểu ngày
+tho["Order Date"] = pd.to_datetime(tho["Order Date"])
+assert abs(tho["Sales"].sum() - tong_tho) < 1e-6
+
+# Bước 3: xoá dòng trùng. Tổng sẽ đổi: chênh lệch phải đúng bằng Sales của dòng trùng
+sach = tho.drop_duplicates()
+chenh = tong_tho - sach["Sales"].sum()
+sales_dong_trung = ...       # tổng Sales của các dòng tho.duplicated()
+
+# Bước 4: tổng hợp theo tháng × Category
+tho_thang = sach.assign(thang=sach["Order Date"].dt.to_period("M"))
+gop = tho_thang.groupby(["thang", "Category"])[["Sales", "Profit"]].sum().reset_index()
+
+# Bước 5: pivot
+bang = gop.pivot(index="thang", columns="Category", values="Sales")
+tong_pivot = ...             # tổng mọi ô của bang
+
+print("Thô:", round(tong_tho, 2), "| Sau xoá trùng:", round(sach["Sales"].sum(), 2), "| Chênh:", round(chenh, 2))
+bang.tail().round(0)`}
+tests={[
+  { code: "assert abs(chenh - sales_dong_trung) < 1e-6, 'sales_dong_trung = tho.loc[tho.duplicated(), \"Sales\"].sum()'", message: "Chênh lệch sau xoá trùng giải thích được bằng dòng trùng" },
+  { code: "assert abs(gop['Sales'].sum() - sach['Sales'].sum()) < 1e-6", message: "Sau groupby: tổng khớp" },
+  { code: "assert abs(tong_pivot - sach['Sales'].sum()) < 1e-6, 'tong_pivot = bang.sum().sum()'", message: "Sau pivot: tổng khớp" },
+]} />
+
+## Luyện tập tình huống
+
+<Situation client:visible id="w05-th-berkeley" title="Tình huống: UC Berkeley 1973" context="Năm 1973, tỷ lệ đỗ sau đại học của UC Berkeley: nam 44,5% (1.198/2.691), nữ 30,4% (557/1.835). Một tờ báo viết: 'Berkeley phân biệt đối xử với nữ'. Bạn đã có số liệu theo 6 khoa ở ô code phía trên." question="Tổng thể cho thấy gì? Theo từng khoa cho thấy gì? Vì sao hai cách nhìn lại ngược nhau, và kết luận của tờ báo có đúng không?">
+
+**Đáp án mẫu**
+
+- **Tổng thể:** nam đỗ 44,5%, nữ 30,4%, có vẻ nữ bị bất lợi.
+- **Theo khoa:** ở 4/6 khoa (A, B, D, F) nữ đỗ cao hơn nam; ở khoa A nữ đỗ 82% so với nam 62%. Hai khoa còn lại chênh lệch nhỏ.
+- **Vì sao:** Simpson's paradox do **mix**. Hơn 90% đơn của nữ nộp vào C, D, E, F, nơi tỷ lệ đỗ chung chỉ 6–35%; một nửa đơn của nam nộp vào A, B, nơi tỷ lệ đỗ trên 60%. Tỷ lệ tổng của nữ bị kéo xuống bởi lựa chọn khoa.
+- **Kết luận:** dữ liệu không ủng hộ việc trường chấm khắt với nữ. Câu hỏi đúng hơn là vì sao nữ tập trung vào các khoa khó đỗ.
+
+**Lỗi hay gặp:** kết luận từ tỷ lệ gộp; hoặc lấy trung bình 6 tỷ lệ của các khoa (average of averages) thay vì nhìn tỷ trọng.
+
+</Situation>
+
+<Situation client:visible id="w05-th-survey" title="Tình huống: dropna trong khảo sát thu nhập" context="Khảo sát 2.000 nhân viên về thu nhập. 30% người bỏ trống câu hỏi thu nhập. Analyst dùng dropna rồi tính thu nhập trung bình của 1.400 người còn lại, báo cáo đây là thu nhập trung bình của toàn công ty." question="Cách làm này có vấn đề gì? Bạn sẽ làm gì khác?">
+
+**Đáp án mẫu**
+
+- **Vấn đề:** phải hỏi "vì sao thiếu?". Người thu nhập cao thường ngại khai, nên dữ liệu thiếu **không ngẫu nhiên**. Sau dropna, mẫu còn lại thiên về người thu nhập thấp, trung bình bị **kéo xuống**: đó là selection bias.
+- **Nên làm:** so đặc điểm nhóm bỏ trống và nhóm trả lời (chức danh, phòng ban, thâm niên); nếu khác nhau rõ, nói rõ giới hạn trong báo cáo; cân nhắc điền theo nhóm (median theo chức danh), dùng dữ liệu lương từ hệ thống HR, hoặc hỏi lại theo khoảng thu nhập để giảm tỷ lệ bỏ trống.
+- Báo median kèm mean, vì thu nhập lệch phải.
+
+**Lỗi hay gặp:** coi dropna là "trung lập"; chỉ báo con số mà không nói 30% bị thiếu.
+
+</Situation>
+
+## Tóm tắt tuần
+
+- Nhận dữ liệu mới → chạy bộ kiểm tra 5 chiều chất lượng → ghi lỗi.
+- Merge: kiểm tra khóa dimension duy nhất, `validate="many_to_one"`, assert số dòng.
+- Tỷ lệ tổng = cộng tử, cộng mẫu, rồi chia. Không lấy trung bình các tỷ lệ.
+- Con số gộp đi ngược con số từng nhóm → nghĩ đến mix (Simpson).
+- Missing: hỏi "vì sao thiếu?" trước khi dropna hay fillna.
+- Đối soát tổng sau mỗi bước; chênh lệch phải giải thích được.

@@ -1,0 +1,15 @@
+front,back,tag
+"Ước lượng Fermi là gì?","Chia một con số khó đoán thành tích của vài thừa số dễ đoán, rồi nhân lên để có bậc độ lớn. Dùng để kiểm tra một con số trong báo cáo có hợp lý không.",tuan-03
+"Ước lượng nhanh doanh thu tháng: 30 ngày, 80 đơn/ngày, 2,5 dòng/đơn, 40 USD/dòng?","30 × 80 × 2,5 × 40 = 240.000 USD. Nếu báo cáo ghi 2,4 triệu hay 24.000 thì cần kiểm tra lại (lệch 10 lần).",tuan-03
+"Khi nào kết quả Fermi được coi là ""khớp""?","Khi cùng bậc độ lớn với con số thật (lệch trong khoảng vài lần). Mục tiêu là bắt lỗi sai 10 lần, không phải đoán chính xác.",tuan-03
+"Tỷ lệ đơn có giảm giá tăng từ 10% lên 15%. Tăng bao nhiêu pp, bao nhiêu %?","Tăng 5 điểm phần trăm (15 − 10). Tính tương đối là tăng 50% (5 / 10).",tuan-03
+"Vì sao phải nói rõ ""pp"" hay ""%"" khi so sánh hai tỷ lệ?","Vì ""tăng 5%"" có thể hiểu là 10% → 10,5% hoặc 10% → 15%. Hai cách khác nhau 10 lần. Dùng pp cho chênh lệch tuyệt đối giữa hai tỷ lệ.",tuan-03
+"Công thức tốc độ tăng trưởng?","(Giá trị mới − Giá trị cũ) / Giá trị cũ. Ví dụ 100.000 → 120.000 là tăng 20%.",tuan-03
+"Base effect là gì?","Tốc độ tăng phụ thuộc mạnh vào kỳ gốc. Kỳ gốc thấp bất thường làm tỷ lệ tăng trông rất lớn dù thực chất không cải thiện.",tuan-03
+"Doanh thu tháng 4 tăng 100% so với cùng kỳ, nhưng năm ngoái cửa hàng chỉ mở 15/30 ngày. Kết luận gì?","Chuẩn hóa theo ngày: 120.000/15 = 8.000 và 240.000/30 = 8.000 USD/ngày. Hiệu quả mỗi ngày không đổi; mức tăng đến từ số ngày mở cửa.",tuan-03
+"Hai cửa hàng cùng tăng thêm 10.000 USD. Một cái từ 10.000, một cái từ 100.000. Tỷ lệ tăng?","100% và 10%. Cùng số tiền tăng nhưng tỷ lệ khác xa vì kỳ gốc khác nhau. Luôn xem cả số tuyệt đối.",tuan-03
+"Dữ liệu chéo (cross-sectional) là gì?","Nhiều đối tượng trong CÙNG một kỳ, để so sánh với nhau. Ví dụ Sales của 4 Region trong tháng 6/2026.",tuan-03
+"Chuỗi thời gian (time series) là gì?","MỘT chỉ tiêu theo dõi qua NHIỀU thời điểm, để thấy xu hướng, mùa vụ. Ví dụ tổng Sales từng tháng từ 1 đến 6/2026.",tuan-03
+"Muốn biết ""khu vực nào bán tốt nhất"" và ""doanh thu có tăng đều không"" thì dùng loại dữ liệu nào?","Câu đầu: cross-sectional (so sánh Region trong cùng kỳ). Câu sau: time series (theo dõi qua các tháng).",tuan-03
+"Lỗi hay gặp khi vẽ time series theo tháng?","Sắp tháng theo chữ cái (Apr, Aug, Dec...) thay vì theo thời gian; trộn Order Date với Ship Date giữa các báo cáo.",tuan-03
+"Python: JSON khác CSV thế nào khi đọc vào?","CSV là bảng phẳng. JSON là cặp tên–giá trị có thể lồng nhau; đọc bằng json.load() ra dict/list, hoặc pd.json_normalize() để làm phẳng thành bảng.",tuan-03

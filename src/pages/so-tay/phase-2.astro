@@ -1,0 +1,61 @@
+---
+import Base from '../../layouts/Base.astro';
+---
+<Base title="Sổ tay Phase 2">
+  <p class="muted no-print">Sổ tay tóm tắt để ôn nhanh hoặc in ra. <button onclick="window.print()">In / Lưu PDF</button></p>
+  <h1>Sổ tay Phase 2: Mô tả</h1>
+
+  <h2>Tuần 4. Tóm tắt một biến</h2>
+  <table>
+    <tr><th>Khái niệm</th><th>Nhớ một câu</th></tr>
+    <tr><td>Mean / median</td><td>Phân phối lệch hoặc có outlier → mean bị kéo, median ổn định hơn.</td></tr>
+    <tr><td>Độ phân tán</td><td>Báo kèm IQR (P75 − P25) hoặc percentile; độ lệch chuẩn hợp với phân phối đối xứng.</td></tr>
+    <tr><td>Percentile</td><td>P90 = 90% giá trị nhỏ hơn mức này. "90% đơn giao trong 3 ngày" rõ hơn "trung bình 2 ngày".</td></tr>
+    <tr><td>Lệch phải</td><td>Đuôi dài bên phải, mean lớn hơn median. Phần lớn dữ liệu business như vậy.</td></tr>
+    <tr><td>Outlier</td><td>Ngoài P25 − 1,5×IQR đến P75 + 1,5×IQR. Kiểm tra lỗi hay sự kiện thật trước khi xoá.</td></tr>
+    <tr><td>Chọn chart</td><td>Phân phối: histogram/boxplot · xu hướng: line · so sánh nhóm: bar · quan hệ: scatter.</td></tr>
+    <tr><td>Anscombe</td><td>Thống kê giống nhau, hình dạng khác hẳn. Luôn vẽ dữ liệu.</td></tr>
+  </table>
+
+  <h2>Tuần 5. Data quality, join và bẫy trung bình</h2>
+  <table>
+    <tr><th>Khái niệm</th><th>Nhớ một câu</th></tr>
+    <tr><td>5 chiều chất lượng</td><td>Đủ · đúng · nhất quán · kịp thời · duy nhất. Kiểm tra mỗi khi nhận dữ liệu mới.</td></tr>
+    <tr><td>Fan-out</td><td>Join với bảng có khoá trùng → nhân dòng → tổng bị phóng đại. Chặn bằng validate="many_to_one" và assert số dòng.</td></tr>
+    <tr><td>Average of averages</td><td>Trung bình của các tỷ lệ ≠ tỷ lệ tổng khi các nhóm khác quy mô. Cộng tử, cộng mẫu, rồi chia.</td></tr>
+    <tr><td>Simpson's paradox</td><td>Xu hướng trong từng nhóm đảo ngược khi gộp, do tỷ trọng (mix) giữa các nhóm khác nhau.</td></tr>
+    <tr><td>Missing values</td><td>Hỏi "vì sao thiếu? xoá đi mẫu còn đại diện không?" trước khi dropna hay fillna.</td></tr>
+    <tr><td>Đối soát tổng</td><td>Sau mỗi bước biến đổi, assert tổng khớp; chênh lệch phải giải thích được.</td></tr>
+  </table>
+
+  <h2>Tuần 6. Metric, funnel, cohort, Pareto</h2>
+  <table>
+    <tr><th>Khái niệm</th><th>Nhớ một câu</th></tr>
+    <tr><td>Định nghĩa metric</td><td>Tử số + mẫu số + kỳ + bộ lọc. Cùng tên mà khác mẫu số là hai metric khác nhau.</td></tr>
+    <tr><td>Rate / count</td><td>Count cho quy mô, rate cho chất lượng. Count tăng có thể chỉ vì quy mô tăng.</td></tr>
+    <tr><td>Goodhart's law</td><td>Metric thành mục tiêu thì bị "chơi". Luôn có metric đối trọng.</td></tr>
+    <tr><td>Tương quan</td><td>Hướng và độ chặt quan hệ tuyến tính, từ −1 đến 1. Không phải nhân quả, không phải độ lớn tác động.</td></tr>
+    <tr><td>Funnel</td><td>Tỷ lệ tổng = tích tỷ lệ từng bước. Tìm bước rơi rụng lớn nhất.</td></tr>
+    <tr><td>Cohort</td><td>Nhóm theo mốc bắt đầu; tách khách mới khỏi khách cũ để thấy giữ chân thật.</td></tr>
+    <tr><td>Pareto</td><td>Đo tỷ trọng của top 20%, đừng mặc định 80/20.</td></tr>
+  </table>
+
+  <h2>Checkpoint 2: ý chính phần A</h2>
+  <ul>
+    <li><strong>Mean và median:</strong> phân phối lệch hoặc có outlier → mean bị kéo, median ổn định hơn.</li>
+    <li><strong>Simpson's paradox:</strong> xu hướng trong từng nhóm đảo ngược khi gộp, do mix giữa các nhóm khác nhau.</li>
+    <li><strong>Fan-out:</strong> join với bảng có khoá trùng → nhân dòng → tổng bị phóng đại.</li>
+    <li><strong>Average of averages:</strong> trung bình của các tỷ lệ ≠ tỷ lệ tổng khi các nhóm có quy mô khác nhau.</li>
+    <li><strong>Tư duy metric:</strong> định nghĩa rõ tử số và mẫu số; rate và count; Goodhart's law kèm 1 ví dụ.</li>
+  </ul>
+
+  <h2>Checklist trước khi gửi một con số mô tả</h2>
+  <ul>
+    <li>Đã chạy kiểm tra trùng, thiếu, giá trị bất thường chưa?</li>
+    <li>Sau mỗi merge: số dòng có giữ nguyên không?</li>
+    <li>Tỷ lệ tổng tính bằng cộng tử / cộng mẫu, hay đang lấy trung bình các tỷ lệ?</li>
+    <li>Con số gộp có đi ngược con số từng nhóm không (mix)?</li>
+    <li>Mean hay median? Đã nhìn phân phối chưa?</li>
+    <li>Metric đã ghi rõ tử số, mẫu số, kỳ, bộ lọc chưa? Có metric đối trọng chưa?</li>
+  </ul>
+</Base>

@@ -1,0 +1,16 @@
+front,back,tag
+"Grain của một bảng là gì?","Mức chi tiết mà MỘT dòng đại diện. Trong Superstore: một dòng = một sản phẩm trong một đơn hàng (order line), không phải một đơn.",tuan-02
+"Bảng Superstore có 3 dòng thuộc 2 Order ID. Báo cáo ""3 đơn hàng"" sai ở đâu?","Đếm số dòng thay vì số Order ID không trùng. Grain là dòng sản phẩm, nên số đơn = số Order ID khác nhau = 2.",tuan-02
+"Đồng nghiệp muốn xóa các dòng trùng Order ID trước khi tính doanh thu. Hậu quả?","Mất các sản phẩm khác trong cùng đơn, doanh thu bị thiếu. Trùng Order ID là bình thường khi grain là dòng sản phẩm.",tuan-02
+"Roll-up là gì?","Gộp dữ liệu từ mức chi tiết lên mức tổng quát hơn. Ví dụ: Sales từng dòng → Sales theo Category → Sales theo Region → toàn công ty.",tuan-02
+"Drill-down là gì?","Đi từ con số tổng xuống chi tiết để tìm nguyên nhân. Ví dụ: Sales East giảm → xem theo Category → xem Sub-Category nào giảm.",tuan-02
+"Measure khác dimension thế nào?","Measure là con số để đo (Sales, Profit, Quantity), trả lời ""bao nhiêu"". Dimension là thuộc tính để chia nhóm (Region, Category, Order Date), trả lời ""theo khía cạnh nào"".",tuan-02
+"Vì sao không cộng thẳng cột Discount khi roll-up?","Discount là tỷ lệ của từng dòng. Cộng các tỷ lệ không ra tỷ lệ chung; phải tính bình quân có trọng số (theo doanh thu trước giảm giá).",tuan-02
+"Fact table chứa gì? Dimension table chứa gì?","Fact table: các sự kiện/giao dịch và measure (mỗi dòng bán hàng với Sales, Quantity, Profit). Dimension table: thông tin mô tả (khách hàng, sản phẩm, ngày).",tuan-02
+"Khóa chính (primary key) là gì?","Cột (hoặc tổ hợp cột) có giá trị duy nhất cho mỗi dòng của bảng, dùng để định danh dòng đó. Ví dụ Product ID trong bảng sản phẩm.",tuan-02
+"Khóa ngoại (foreign key) là gì?","Cột trong một bảng trỏ tới khóa chính của bảng khác để nối hai bảng. Ví dụ Customer ID trong bảng bán hàng trỏ tới bảng khách hàng.",tuan-02
+"Order ID có làm khóa chính cho bảng bán hàng Superstore được không?","Không, vì một đơn có nhiều dòng nên Order ID lặp lại. Cần khóa riêng cho từng dòng (Row ID / Line ID) hoặc tổ hợp Order ID + Product ID nếu nó duy nhất.",tuan-02
+"Star schema trông như thế nào?","Một fact table ở giữa, nối với nhiều dimension table xung quanh (khách hàng, sản phẩm, ngày, khu vực) qua khóa ngoại, giống hình ngôi sao.",tuan-02
+"Normalization nhằm mục đích gì?","Tách dữ liệu để mỗi thông tin chỉ lưu một chỗ (Segment của khách lưu một lần), tránh lặp và tránh sai lệch khi cập nhật.",tuan-02
+"Denormalization là gì, khi nào dùng?","Gộp lại thông tin vào một bảng rộng (có lặp) để đọc và phân tích nhanh, không phải nối bảng. File Superstore chính là một bảng đã denormalize.",tuan-02
+"Python/pandas: lệnh nào đếm số đơn hàng thật trong Superstore?","df['Order ID'].nunique() — đếm số giá trị khác nhau, khác với len(df) là đếm số dòng.",tuan-02
