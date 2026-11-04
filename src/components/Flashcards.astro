@@ -1,0 +1,12 @@
+---
+// Nạp bộ thẻ từ src/content/flashcards/<deck>.csv (cột front, back, tag) và hiện bằng FlashcardDeck.
+import FlashcardDeck from './FlashcardDeck.tsx';
+import { parseCsv } from '../lib/csv';
+type Props = { deck: string };
+const { deck } = Astro.props;
+const files = import.meta.glob('../content/flashcards/*.csv', { query: '?raw', import: 'default', eager: true }) as Record<string, string>;
+const text = files[`../content/flashcards/${deck}.csv`];
+if (!text) throw new Error(`Không tìm thấy bộ thẻ ${deck}.csv`);
+const cards = parseCsv(text).map((r) => ({ front: r.front, back: r.back }));
+---
+<FlashcardDeck client:visible id={`cards-${deck}`} cards={cards} />
