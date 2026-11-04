@@ -124,3 +124,13 @@ pre.astro-code { padding: 12px 14px; border-radius: 8px; overflow-x: auto; font-
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) pre.astro-code, :root:not([data-theme="light"]) pre.astro-code span { color: var(--shiki-dark) !important; }
 }
+
+/* Thẻ ghi nhớ */
+.deck { border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; background: var(--surface); margin: 24px 0; }
+.deck-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+.card { display: flex; flex-direction: column; gap: 8px; width: 100%; min-height: 160px; padding: 18px; text-align: left; border-radius: 10px; border: 1px solid var(--border); background: var(--bg); font-size: 1.05rem; line-height: 1.5; }
+.card.flipped { background: var(--good-soft); border-color: var(--good); }
+.card-side { font-size: 0.8rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
+.card-hint { margin-top: auto; font-size: 0.85rem; color: var(--muted); }
+.deck-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 10px; }
+.deck-left { font-size: 0.85rem; margin: 8px 0 0; }

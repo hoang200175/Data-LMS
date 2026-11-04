@@ -1,0 +1,15 @@
+front,back,tag
+"Dữ liệu có cấu trúc là gì? Cho một ví dụ trong Superstore.","Dữ liệu xếp sẵn thành hàng và cột cố định, mỗi cột một kiểu giá trị. Ví dụ: file Superstore.csv, mỗi dòng là một dòng sản phẩm trong đơn hàng.",tuan-01
+"Dữ liệu bán cấu trúc khác dữ liệu có cấu trúc ở điểm nào?","Có tên trường và quy tắc (ví dụ JSON: cặp tên–giá trị, có thể lồng nhau) nhưng các bản ghi không bắt buộc cùng một bộ cột.",tuan-01
+"Email khiếu nại của khách thuộc loại dữ liệu nào? Muốn phân tích thì phải làm gì trước?","Phi cấu trúc. Phải gắn nhãn hoặc trích ra thành cột (chủ đề, mức độ, ngày) thì mới đếm và so sánh được.",tuan-01
+"Data-generating process (DGP) là gì?","Quy trình nghiệp vụ và hệ thống đã sinh ra dữ liệu: ai nhập, lúc nào, theo quy tắc gì, cái gì không được ghi lại.",tuan-01
+"Vì sao phải hỏi về DGP trước khi phân tích?","Vì nó quyết định một dòng nghĩa là gì, cái gì bị thiếu và vì sao. Không hiểu DGP dễ đếm sai (số dòng thay cho số đơn) hoặc kết luận từ dữ liệu bị lọc mất.",tuan-01
+"Trong Superstore, vì sao một Order ID xuất hiện nhiều dòng?","Vì mỗi dòng là một sản phẩm trong đơn. Đơn mua 3 sản phẩm sinh ra 3 dòng cùng Order ID. Số dòng không phải số đơn.",tuan-01
+"Biến categorical và numerical khác nhau thế nào?","Categorical: giá trị là nhãn/nhóm (Region, Segment). Numerical: giá trị là số đo được, cộng trừ có nghĩa (Sales, Quantity).",tuan-01
+"Customer ID toàn chữ số. Nó là biến numerical à?","Không. Nó là mã định danh, thuộc categorical (nominal). Tính trung bình Customer ID không có nghĩa.",tuan-01
+"Thang nominal là gì? Ví dụ?","Chỉ phân nhóm, không có thứ tự. Ví dụ Region (East, West, Central, South), Category. Được đếm, tính tỷ trọng; không xếp hạng, không tính trung bình.",tuan-01
+"Thang ordinal là gì? Ví dụ?","Có thứ tự nhưng khoảng cách giữa các mức không đều hoặc không biết. Ví dụ mức hài lòng Thấp/Trung bình/Cao, hạng ghế. Xếp hạng được, không nên tính trung bình.",tuan-01
+"Interval khác ratio ở điểm nào?","Cả hai có khoảng cách đều. Ratio có số 0 thật nên nói được ""gấp đôi"" (Sales 200 gấp đôi 100). Interval không có 0 thật (nhiệt độ °C, ngày tháng) nên không nói ""gấp đôi"".",tuan-01
+"Discount trong Superstore là kiểu biến gì? Có cộng thẳng được không?","Numerical, thang ratio (tỷ lệ 0–1). Không cộng các Discount với nhau; muốn mức giảm chung phải tính bình quân có trọng số theo doanh thu.",tuan-01
+"Đồng nghiệp mã hóa Region thành 1–4 rồi báo ""vùng trung bình = 2,5"". Sai ở đâu?","Region là nominal; gán số chỉ là đặt tên khác, không biến nó thành số đo. Con số 2,5 vô nghĩa.",tuan-01
+"Python: kiểu dữ liệu nào hợp để lưu danh sách Region, và kiểu nào để tra Sales theo Order ID?","List cho danh sách (['East', 'West']); dict để tra theo khóa ({'CA-2016-152156': 261.96}).",tuan-01
