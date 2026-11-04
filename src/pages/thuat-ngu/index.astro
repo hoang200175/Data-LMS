@@ -1,0 +1,24 @@
+---
+import Base from '../../layouts/Base.astro';
+import { GLOSSARY } from '../../lib/glossary';
+const terms = [...GLOSSARY].sort((a, b) => a.en.localeCompare(b.en));
+---
+<Base title="Thuật ngữ">
+  <h1>Bảng thuật ngữ Anh–Việt</h1>
+  <p>Lộ trình giữ thuật ngữ tiếng Anh vì đó là từ bạn sẽ gặp trong công việc và tài liệu. Gõ để lọc.</p>
+  <input id="filter" class="no-print" type="search" placeholder="Tìm thuật ngữ…" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text);font:inherit" />
+  <table id="terms">
+    <thead><tr><th>Tiếng Anh</th><th>Tiếng Việt</th><th>Nghĩa</th><th>Tuần</th></tr></thead>
+    <tbody>
+      {terms.map((t) => <tr><td><strong>{t.en}</strong></td><td>{t.vi}</td><td>{t.def}</td><td>{t.week}</td></tr>)}
+    </tbody>
+  </table>
+  <script>
+    const input = document.getElementById('filter') as HTMLInputElement;
+    const rows = [...document.querySelectorAll('#terms tbody tr')] as HTMLElement[];
+    input.addEventListener('input', () => {
+      const q = input.value.trim().toLowerCase();
+      for (const r of rows) r.style.display = r.textContent!.toLowerCase().includes(q) ? '' : 'none';
+    });
+  </script>
+</Base>

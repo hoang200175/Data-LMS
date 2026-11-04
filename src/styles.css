@@ -73,3 +73,54 @@ button:disabled { opacity: 0.5; cursor: default; }
 .callout { padding: 10px 14px; border-radius: 10px; background: var(--accent-soft); margin: 16px 0; }
 .callout.trap { background: var(--bad-soft); }
 .tests .detail { font-size: 0.85rem; color: var(--muted); margin-left: 1.2em; }
+
+/* Câu hỏi nhanh */
+.quiz { border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; background: var(--surface); margin: 24px 0; }
+.quiz-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+.quiz-q { border: 0; padding: 0; margin: 0 0 14px; }
+.quiz-q legend { font-weight: 600; margin-bottom: 4px; }
+.quiz-opt { display: flex; gap: 8px; align-items: flex-start; padding: 6px 8px; border-radius: 8px; cursor: pointer; }
+.quiz-opt input { margin-top: 0.35em; }
+.quiz-opt.right { background: var(--good-soft); }
+.quiz-opt.wrong { background: var(--bad-soft); }
+.quiz-explain { font-size: 0.92rem; color: var(--muted); margin: 4px 0 0 8px; }
+
+/* Tình huống */
+.situation .sit-title { font-weight: 700; margin: 0 0 6px; }
+.situation .key { white-space: normal; }
+.situation .key > :first-child { margin-top: 0; }
+.situation .key table { border-collapse: collapse; font-size: 0.92rem; }
+.situation .key td, .situation .key th { border: 1px solid var(--border); padding: 4px 8px; }
+
+/* Media */
+.media { margin: 16px 0; padding: 12px 14px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); }
+.media.empty { border-style: dashed; }
+.media figcaption { margin-bottom: 8px; }
+.media .video { position: relative; padding-top: 56.25%; }
+.media iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; border-radius: 8px; }
+.media audio { width: 100%; }
+.media p { margin: 4px 0 0; }
+.media-note { font-size: 0.9rem; color: var(--muted); }
+
+/* Bài đọc */
+.goals { padding: 12px 16px; border-radius: 10px; background: var(--surface); border: 1px solid var(--border); }
+.goals ul { margin: 6px 0 0; padding-left: 20px; }
+table { border-collapse: collapse; width: 100%; font-size: 0.95rem; margin: 12px 0; display: block; overflow-x: auto; }
+th, td { border: 1px solid var(--border); padding: 6px 10px; text-align: left; vertical-align: top; }
+th { background: var(--code-bg); }
+blockquote { margin: 16px 0; padding: 8px 14px; border-left: 4px solid var(--border); color: var(--muted); }
+nav.site { display: flex; gap: 16px; margin-left: auto; font-size: 0.92rem; }
+nav.site a { color: var(--muted); text-decoration: none; }
+nav.site a:hover { color: var(--accent); }
+.lesson-nav { display: flex; justify-content: space-between; gap: 12px; margin-top: 40px; padding-top: 16px; border-top: 1px solid var(--border); }
+@media print {
+  header.site, .lesson-nav, .no-print { display: none; }
+  body { background: #fff; color: #000; }
+  main { max-width: none; }
+}
+
+/* Khối code tĩnh (shiki): đổi theme theo sáng/tối */
+pre.astro-code { padding: 12px 14px; border-radius: 8px; overflow-x: auto; font-size: 13px; border: 1px solid var(--border); background-color: var(--code-bg) !important; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) pre.astro-code, :root:not([data-theme="light"]) pre.astro-code span { color: var(--shiki-dark) !important; }
+}

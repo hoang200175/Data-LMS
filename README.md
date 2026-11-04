@@ -8,7 +8,8 @@ Data Learning System for Newbie: website tự học theo lộ trình Data 16 tu�
 - Ô code Python chạy ngay trên trình duyệt bằng [Pyodide](https://pyodide.org) (pandas, numpy, matplotlib, scikit-learn…), có nút **Kiểm tra** chạy `assert` và kiểm tra ẩn.
 - Cơ chế "trả lời trước, mở đáp án sau": câu trả lời nộp rồi bị khoá, sau đó mới hiện đáp án và tự chấm.
 - Tiến độ và code lưu trên máy người học (localStorage).
-- Bài mẫu: Tuần 0 (2 câu tình huống) và Tuần 2 (grain, Superstore).
+- Nội dung Phase 1 (Tuần 1–3): bài đọc ngắn, câu hỏi nhanh, thực hành Python, 6 tình huống; Tuần 0 có 2 câu mẫu.
+- Sổ tay Phase 1 (`/so-tay/phase-1/`, in được) và bảng thuật ngữ Anh–Việt (`/thuat-ngu/`).
 
 ## Chạy trên máy
 
@@ -26,10 +27,18 @@ Tạo file `src/content/weeks/week-XX.mdx` với frontmatter `week`, `title`, `m
 <PythonCell client:visible id="w05-fanout" title="..." code={`...`}
   tests={[{ code: "assert ...", message: "..." }, { code: "assert ...", message: "...", hidden: true }]} />
 
-<AnswerFirst client:visible id="w05-c1" question="..." answer="..." />
+<Quiz client:visible id="w05-q1" questions={[{ q: "...", options: ["...", "..."], answer: 0, explain: "..." }]} />
+
+<Situation client:visible id="w05-th1" title="..." context="..." question="...">
+
+Đáp án mẫu viết bằng Markdown ở đây (chỉ hiện sau khi người học nộp câu trả lời).
+
+</Situation>
 ```
 
-`id` phải duy nhất trên toàn site vì dùng để lưu tiến độ.
+`id` phải duy nhất trên toàn site vì dùng để lưu tiến độ. Quiz tự xáo thứ tự phương án, nên đáp án đúng viết ở vị trí nào cũng được.
+
+Video và audio tóm tắt tuần khai báo trong frontmatter, mục `media` (`kind: audio|video`, `title`, `src`, `note`). Chưa có `src` thì trang hiện ô "sắp có". Audio đặt trong `public/audio/` rồi ghi `src: audio/tuan-01.m4a`; video ghi link YouTube.
 
 ## Dữ liệu
 

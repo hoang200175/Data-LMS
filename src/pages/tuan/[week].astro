@@ -1,13 +1,17 @@
 ---
 import { getCollection, render } from 'astro:content';
 import Base from '../../layouts/Base.astro';
+import Media from '../../components/Media.astro';
 import { WEEKS, PHASES, pad } from '../../lib/curriculum';
 
 export async function getStaticPaths() {
-  const entries = await getCollection('weeks');
-  return entries.map((entry) => ({ params: { week: pad(entry.data.week) }, props: { entry } }));
+  const entries = (await getCollection('weeks')).sort((a, b) => a.data.week - b.data.week);
+  return entries.map((entry, i) => ({
+    params: { week: pad(entry.data.week) },
+    props: { entry, prev: entries[i - 1]?.data, next: entries[i + 1]?.data },
+  }));
 }
-const { entry } = Astro.props;
+const { entry, prev, next } = Astro.props;
 const { Content } = await render(entry);
 const meta = WEEKS.find((w) => w.week === entry.data.week)!;
 const base = import.meta.env.BASE_URL.replace(/\/?$/, '/');
@@ -15,5 +19,13 @@ const base = import.meta.env.BASE_URL.replace(/\/?$/, '/');
 <Base title={`Tuần ${meta.week}: ${entry.data.title}`}>
   <p class="muted"><a href={base}>← Tất cả các tuần</a> · Phase {meta.phase}: {PHASES[meta.phase].name}{entry.data.minutes ? ` · khoảng ${entry.data.minutes} phút` : ''}</p>
   <h1>Tuần {meta.week}: {entry.data.title}</h1>
+  {entry.data.goals && (
+    <div class="goals"><strong>Sau tuần này bạn có thể:</strong><ul>{entry.data.goals.map((g) => <li>{g}</li>)}</ul></div>
+  )}
+  {entry.data.media?.map((m) => <Media {...m} />)}
   <Content />
+  <nav class="lesson-nav">
+    <span>{prev && <a href={`${base}tuan/${pad(prev.week)}/`}>← Tuần {prev.week}: {prev.title}</a>}</span>
+    <span>{next && <a href={`${base}tuan/${pad(next.week)}/`}>Tuần {next.week}: {next.title} →</a>}</span>
+  </nav>
 </Base>

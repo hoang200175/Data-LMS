@@ -1,0 +1,157 @@
+---
+week: 3
+title: Number sense
+minutes: 240
+goals:
+  - "Ước lượng nhanh một con số bằng phương pháp Fermi, ghi rõ chuỗi giả định."
+  - "Phân biệt % thay đổi và điểm phần trăm (pp); không nhầm khi đọc báo cáo."
+  - "Nhận ra base effect trước khi khen hay chê một mức tăng trưởng."
+  - "Phân biệt dữ liệu cross-sectional và time series, biết mỗi loại trả lời câu hỏi gì."
+  - "Đọc một file JSON đơn giản và làm phẳng thành bảng."
+media:
+  - kind: audio
+    title: Tóm tắt Tuần 3 (podcast ngắn)
+    lang: Tiếng Việt
+  - kind: video
+    title: Video tham khảo về ước lượng Fermi
+    lang: Tiếng Anh
+---
+import PythonCell from '../../components/PythonCell.tsx';
+import Quiz from '../../components/Quiz.tsx';
+import Situation from '../../components/Situation.tsx';
+
+**Number sense** là phản xạ thấy một con số "có lý" hay "có gì đó sai" trước khi tính toán kỹ. Đây là kỹ năng người làm data dùng hằng ngày, và luyện được bằng vài thói quen đơn giản trong tuần này.
+
+## Bài 3.1. Ước lượng Fermi <span class="badge lvl7">[7]</span>
+
+Khi chưa có số liệu, hãy **chia con số khó đoán thành tích của các con số dễ đoán**. Đây gọi là ước lượng Fermi.
+
+Ví dụ: doanh thu tháng của một cửa hàng khi chưa có báo cáo.
+
+| Yếu tố | Giả định |
+| --- | --- |
+| Số ngày mở cửa | 30 |
+| Số đơn mỗi ngày | 80 |
+| Số dòng sản phẩm mỗi đơn | 2,5 |
+| Doanh thu trung bình mỗi dòng | 40 USD |
+| **Doanh thu tháng** | 30 × 80 × 2,5 × 40 = **240.000 USD** |
+
+Ba nguyên tắc:
+
+1. **Ghi rõ từng giả định**, để người khác thấy chỗ nào cần sửa.
+2. **Mục tiêu là đúng bậc độ lớn** (hàng chục nghìn hay hàng trăm nghìn), không phải đúng từng đồng.
+3. **Dùng Fermi để kiểm tra báo cáo**: nếu báo cáo ghi 2,4 triệu USD mà Fermi ra 240 nghìn, chắc chắn có chỗ sai (ví dụ cộng trùng, sai đơn vị).
+
+## Bài 3.2. % và điểm phần trăm (pp) <span class="badge lvl7">[7]</span>
+
+Tỷ lệ chuyển đổi tăng từ **2% lên 3%**. Tăng bao nhiêu?
+
+- Tính theo **điểm phần trăm (pp)**: 3% − 2% = **+1 pp**. Đây là chênh lệch tuyệt đối giữa hai tỷ lệ.
+- Tính theo **% thay đổi**: (3 − 2) / 2 = **+50%**. Đây là thay đổi tương đối so với mức cũ.
+
+Cả hai đều đúng, nhưng nói khác nhau rất nhiều. "Tăng 50%" nghe ấn tượng hơn "tăng 1 pp". Quy tắc: **khi so hai tỷ lệ, luôn ghi rõ pp hay %**, và nên báo cả hai.
+
+## Bài 3.3. Base effect <span class="badge lvl7">[7]</span>
+
+Base effect (hiệu ứng kỳ gốc): **mức tăng trưởng cao hay thấp phụ thuộc vào kỳ gốc**. Kỳ gốc thấp bất thường thì kỳ sau tăng mạnh mà không có gì tốt lên.
+
+Ví dụ: doanh thu tháng 2 tăng 100% so với tháng 1. Trước khi khen, hãy hỏi:
+
+- Tháng 1 có **thấp bất thường** không? (Tết, sự cố hệ thống, ít ngày mở cửa)
+- So với **cùng kỳ năm trước** thì sao?
+- Quy về **mỗi ngày** hoặc **mỗi cửa hàng** thì còn tăng không?
+
+Tương tự, sản phẩm A tăng 200% và sản phẩm B tăng 10% **chưa chắc** A đóng góp nhiều hơn: nếu A tăng từ 10 lên 30 (+20) còn B từ 1.000 lên 1.100 (+100), thì B đóng góp gấp 5 lần A. **Luôn nhìn cả số tuyệt đối, không chỉ %.**
+
+<PythonCell client:visible id="w03-py-pp" title="Tự tính % và pp" code={`def thay_doi(cu, moi):
+    """cu, moi là tỷ lệ dạng số thập phân (0.02 nghĩa là 2%).
+    Trả về (chênh lệch theo pp, % thay đổi tương đối)."""
+    pp = ...          # chênh lệch tuyệt đối, đổi sang điểm phần trăm (nhân 100)
+    tuong_doi = ...   # (moi - cu) / cu
+    return pp, tuong_doi
+
+print(thay_doi(0.02, 0.03))   # kỳ vọng (1.0, 0.5)
+
+# Đóng góp vào tăng trưởng: A từ 10 lên 30, B từ 1000 lên 1100
+dong_gop_A = ...
+dong_gop_B = ...
+print(dong_gop_A, dong_gop_B)`}
+tests={[
+  { code: "pp, td = thay_doi(0.02, 0.03); assert abs(pp - 1) < 1e-9, f'pp đang là {pp}, cần 1.0'", message: "2% → 3% là +1 pp" },
+  { code: "pp, td = thay_doi(0.02, 0.03); assert abs(td - 0.5) < 1e-9, f'tương đối đang là {td}, cần 0.5'", message: "2% → 3% là +50%" },
+  { code: "assert dong_gop_A == 20 and dong_gop_B == 100, 'Đóng góp tính bằng số tuyệt đối: mới − cũ'", message: "Đóng góp A = 20, B = 100" },
+  { code: "pp, td = thay_doi(0.10, 0.15); assert abs(pp - 5) < 1e-9 and abs(td - 0.5) < 1e-9", message: "10% → 15% là +5 pp, +50%", hidden: true },
+]} />
+
+<Quiz client:visible id="w03-q-number" questions={[
+  { q: "Tỷ lệ khách quay lại giảm từ 40% xuống 30%. Cách nói nào đúng?", options: ["Giảm 10%", "Giảm 10 pp, tương đương giảm 25%", "Giảm 25 pp"], answer: 1, explain: "40% − 30% = 10 pp; 10 / 40 = 25% giảm tương đối." },
+  { q: "Doanh thu tháng 2 tăng 100% so với tháng 1. Việc đầu tiên nên làm là gì?", options: ["Báo cáo thành tích ngay", "Kiểm tra tháng 1 có thấp bất thường không và so với cùng kỳ năm trước", "Tính trung bình 2 tháng"], answer: 1, explain: "Đó là kiểm tra base effect trước khi kết luận." },
+  { q: "Báo cáo ghi doanh thu tháng của một cửa hàng nhỏ là 2,4 triệu USD; ước lượng Fermi của bạn ra khoảng 240 nghìn USD. Nên làm gì?", options: ["Tin báo cáo, vì Fermi chỉ là ước lượng", "Kiểm tra lại báo cáo: lệch 10 lần là dấu hiệu có lỗi", "Lấy trung bình hai con số"], answer: 1, explain: "Fermi nhằm đúng bậc độ lớn. Lệch cả một bậc (10 lần) thường do cộng trùng hoặc sai đơn vị." },
+]} />
+
+## Bài 3.4. Cross-sectional và time series <span class="badge">[6]</span>
+
+| | Cross-sectional | Time series |
+| --- | --- | --- |
+| Là gì | Nhiều đối tượng **tại cùng một thời điểm** | **Một** chỉ tiêu qua **nhiều thời điểm** |
+| Ví dụ | Sales tháng 6 của 4 vùng | Tổng Sales từ tháng 1 đến tháng 6 |
+| Trả lời câu hỏi | Ai tốt hơn ai? | Đang tăng hay giảm? Có mùa vụ không? |
+| Bẫy | So các đối tượng ở **các kỳ khác nhau** | Bỏ qua mùa vụ khi so tháng này với tháng trước |
+
+## Thực hành Python: đọc JSON <span class="badge">[5]</span>
+
+Dữ liệu từ API thường ở dạng JSON lồng nhau. Chạy đoạn code mẫu, rồi trả lời: mỗi key sẽ thành cột nào sau khi làm phẳng?
+
+<PythonCell client:visible id="w03-py-json" title="Làm phẳng JSON bằng json_normalize" code={`import pandas as pd
+
+don_hang = [
+    {"order_id": "OR-01", "customer": {"id": "CU-7", "segment": "Corporate"},
+     "items": [{"product": "Chair", "qty": 2}, {"product": "Paper", "qty": 5}]},
+    {"order_id": "OR-02", "customer": {"id": "CU-9", "segment": "Consumer"},
+     "items": [{"product": "Phone", "qty": 1}]},
+]
+
+# Mỗi sản phẩm thành 1 dòng, kèm thông tin đơn và khách
+bang = pd.json_normalize(don_hang, record_path="items",
+                         meta=["order_id", ["customer", "id"], ["customer", "segment"]])
+bang`}
+tests={[
+  { code: "assert len(bang) == 3, 'Có 3 sản phẩm nên phải có 3 dòng'", message: "Làm phẳng ra 3 dòng (grain: một sản phẩm trong một đơn)" },
+  { code: "assert 'customer.id' in bang.columns, 'Key lồng customer.id phải thành một cột'", message: "Key lồng customer.id thành cột riêng" },
+]} />
+
+## Luyện tập tình huống
+
+<Situation client:visible id="w03-th5" title="Tình huống 5. Doanh thu tăng 100% có thực sự tốt?" context="Trưởng phòng muốn ước lượng nhanh Sales tháng 04/2026. Giả định: cửa hàng mở 30 ngày, trung bình 80 đơn/ngày, 2,5 dòng sản phẩm/đơn, Sales trung bình 40 USD/dòng. Tháng 04/2025 cửa hàng chỉ mở 15 ngày, đạt Sales 120.000 USD, và tỷ lệ đơn có ít nhất một dòng được giảm giá là 10%. Tháng 04/2026 tỷ lệ này dự kiến tăng lên 15%." question="Dùng Fermi dự báo Sales tháng 04/2026, tính mức tăng doanh thu theo %, và mức tăng tỷ lệ đơn giảm giá theo pp. Doanh thu tăng 100% có đủ để kết luận bán hàng hiệu quả hơn không?">
+
+**Đáp án mẫu**
+
+- Fermi: 30 × 80 × 2,5 × 40 = **240.000 USD**.
+- Tăng trưởng doanh thu: (240.000 − 120.000) / 120.000 = **100%**.
+- Tỷ lệ đơn giảm giá: 10% → 15% là **+5 pp**, tương đương tăng tương đối 50%.
+- Base effect: tháng 04/2025 chỉ mở 15 ngày. Doanh thu mỗi ngày: 120.000 / 15 = 8.000 USD (2025) và 240.000 / 30 = 8.000 USD (2026). Tăng 100% chủ yếu vì số ngày bán gấp đôi, chưa chứng minh hiệu quả tốt hơn.
+
+**Lỗi hay gặp:** nhầm tăng 5 pp với tăng 5%; chỉ nhìn tốc độ tăng mà bỏ qua kỳ gốc bất thường.
+
+</Situation>
+
+<Situation client:visible id="w03-th6" title="Tình huống 6. So sánh các khu vực hay theo dõi xu hướng?" context="Giám đốc Kinh doanh xem hai báo cáo. Báo cáo 1: Sales tháng 06/2026 theo Region: East 140.000, West 120.000, Central 80.000, South 60.000 USD. Báo cáo 2: tổng Sales toàn bộ khu vực từ tháng 01 đến 06/2026: 250.000, 290.000, 310.000, 330.000, 370.000, 400.000 USD. Cả hai quy về tháng theo Order Date." question="Báo cáo nào là cross-sectional, báo cáo nào là time series? Mỗi cách trả lời câu hỏi kinh doanh nào? Hai báo cáo có khớp nhau không?">
+
+**Đáp án mẫu**
+
+- Báo cáo 1 là cross-sectional: "khu vực nào bán tốt hơn trong cùng kỳ?". East dẫn đầu với 140.000 USD.
+- Báo cáo 2 là time series: "doanh thu thay đổi thế nào qua thời gian?". Từ 250.000 lên 400.000 USD, tăng 60%.
+- Hai báo cáo khớp: 140.000 + 120.000 + 80.000 + 60.000 = 400.000 USD, đúng bằng tháng 06 ở báo cáo 2.
+
+**Lỗi hay gặp:** so các khu vực ở những tháng khác nhau; dùng Order Date cho báo cáo này nhưng Ship Date cho báo cáo kia.
+
+</Situation>
+
+## Tóm tắt tuần và chuẩn bị Checkpoint 1
+
+- Fermi: chia nhỏ, ghi giả định, nhắm đúng bậc độ lớn; dùng để soát báo cáo.
+- Hai tỷ lệ: ghi rõ **pp** hay **%**.
+- Tăng trưởng: nhìn kỳ gốc, so cùng kỳ, quy về mỗi ngày/mỗi đơn vị; nhìn số tuyệt đối.
+- Cross-sectional so ai với ai; time series xem xu hướng.
+
+<div class="callout">**Checkpoint 1** (cuối tuần này): phần A giải thích khái niệm closed-book, phần B thực hành trên Superstore, phần C 4 tình huống number sense. Đạt khi đủ ý chính các khái niệm [7], 100% assert pass, và đúng ≥ 3/4 tình huống. Trang checkpoint sẽ có ở bản tiếp theo.</div>

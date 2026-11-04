@@ -1,25 +1,106 @@
 ---
 week: 2
 title: Grain và cách tổ chức dữ liệu
-minutes: 60
+minutes: 240
+goals:
+  - "Trả lời được \"một dòng là gì?\" cho bất kỳ bảng nào, và phát hiện lỗi đếm trùng do sai grain."
+  - "Phân biệt measure và dimension; roll-up và drill-down một con số."
+  - "Vẽ được star schema cho dữ liệu bán hàng: fact table, dimension table, khoá chính, khoá ngoại."
+  - "Giải thích vì sao tách bảng (normalization) và khi nào gộp bảng (denormalization)."
+  - "Dùng pandas để đọc, chọn, lọc và sắp xếp dữ liệu."
+media:
+  - kind: audio
+    title: Tóm tắt Tuần 2 (podcast ngắn)
+    lang: Tiếng Việt
+  - kind: video
+    title: Video tham khảo về star schema
+    lang: Tiếng Anh
 ---
 import PythonCell from '../../components/PythonCell.tsx';
 import AnswerFirst from '../../components/AnswerFirst.tsx';
+import Quiz from '../../components/Quiz.tsx';
+import Situation from '../../components/Situation.tsx';
+import StarSchema from '../../components/StarSchema.astro';
 
-> Đây là **bài mẫu** của bản khung, để xem nhịp một bài học: vì sao cần biết → ý chính → thực hành có kiểm tra → bẫy cần nhớ. Dữ liệu là bản giả lập theo cấu trúc Superstore.
+**Cách học tuần này:** đây là tuần quan trọng nhất của Phase 1. Sai grain là lỗi phổ biến nhất trong báo cáo thực tế, và nó âm thầm làm sai mọi con số phía sau.
 
-## Vì sao cần biết <span class="badge lvl7">[7] Thành thạo</span>
+## Bài 2.1. Grain: một dòng là gì? <span class="badge lvl7">[7]</span>
 
-Sếp hỏi: "Năm nay mình có bao nhiêu đơn hàng?". Bạn mở file bán hàng, thấy 3,039 dòng và trả lời 3,039 đơn. Nhưng mỗi dòng của file này là **một sản phẩm trong một đơn**, không phải một đơn. Con số đúng nhỏ hơn nhiều. Lỗi này tên là **sai grain**.
+Sếp hỏi: "Năm nay mình có bao nhiêu đơn hàng?". Bạn mở file bán hàng, thấy 3,039 dòng và trả lời 3,039 đơn. Nhưng mỗi dòng của file này là **một sản phẩm trong một đơn**, không phải một đơn. Con số đúng nhỏ hơn nhiều. Lỗi này gọi là **sai grain**.
 
-## Ý chính
-
-- **Grain** trả lời câu: *một dòng trong bảng đại diện cho cái gì?* (một đơn, một sản phẩm trong đơn, một khách hàng một ngày…)
+- **Grain** (độ hạt) trả lời câu: *một dòng trong bảng đại diện cho cái gì?* Một đơn, một sản phẩm trong đơn, một khách hàng trong một ngày…
 - Sai grain dẫn tới **đếm trùng** và **tổng sai**.
-- Cách kiểm tra: tìm tổ hợp cột mà mỗi dòng có một giá trị riêng (khoá). Nếu số dòng bằng số tổ hợp khoá duy nhất, bạn đã tìm đúng grain.
-- **Measure** là con số để cộng, trung bình (Sales, Profit). **Dimension** là thứ để chia nhóm (Region, Category).
+- Cách kiểm tra: tìm tổ hợp cột mà mỗi dòng có một giá trị riêng (gọi là **khoá**). Nếu số dòng bằng số tổ hợp khoá duy nhất, bạn đã tìm đúng grain.
 
-## Thực hành 1: Đọc dữ liệu
+Ví dụ 3 dòng sau có grain "một sản phẩm trong một đơn":
+
+| Order ID | Category | Sales | Profit |
+| --- | --- | --- | --- |
+| O-01 | Furniture | 200 | 40 |
+| O-01 | Office Supplies | 50 | 10 |
+| O-02 | Furniture | 100 | −5 |
+
+3 dòng nhưng chỉ **2 đơn**. Muốn đếm đơn, phải đếm **Order ID khác nhau**, không đếm dòng.
+
+## Bài 2.2. Measure, dimension, roll-up và drill-down <span class="badge lvl7">[7]</span>
+
+- **Measure** (chỉ tiêu đo lường): con số để cộng, lấy trung bình. Ví dụ Sales, Profit, Quantity.
+- **Dimension** (chiều phân tích): thuộc tính để chia nhóm, lọc. Ví dụ Region, Category, Order Date.
+
+Một báo cáo luôn có dạng **measure theo dimension**: "Sales theo Region", "Profit theo tháng và Category".
+
+- **Roll-up** là gộp từ chi tiết lên tổng: từ 3 dòng trên → tổng Sales = 350.
+- **Drill-down** là đi từ tổng xuống chi tiết để tìm nguyên nhân: tổng 350 → Furniture 300, Office Supplies 50.
+
+Khi sếp hỏi "vì sao doanh thu giảm?", việc đầu tiên thường là drill-down theo từng dimension (vùng, sản phẩm, kênh) để khoanh vùng chỗ giảm.
+
+<Quiz client:visible id="w02-q-grain" questions={[
+  { q: "Bảng có cột Ngày, Cửa hàng, Doanh thu; mỗi cửa hàng có đúng một dòng mỗi ngày. Grain của bảng là gì?", options: ["Một cửa hàng", "Một cửa hàng trong một ngày", "Một giao dịch"], answer: 1, explain: "Khoá là tổ hợp (Ngày, Cửa hàng): mỗi tổ hợp đúng một dòng." },
+  { q: "Trong bảng chi tiết đơn hàng, cột nào là measure?", options: ["Region", "Order Date", "Quantity"], answer: 2, explain: "Quantity là số để cộng. Region và Order Date là dimension để chia nhóm." },
+  { q: "Bảng chi tiết đơn có cột 'Tổng giá trị đơn' lặp lại ở mỗi dòng sản phẩm. Cộng cột này để ra doanh thu sẽ thế nào?", options: ["Đúng", "Bị phóng đại", "Bị thiếu"], answer: 1, explain: "Cột ở grain đơn bị lặp ở grain dòng, nên cộng lại sẽ tính một đơn nhiều lần." },
+]} />
+
+## Bài 2.3. Fact, dimension, khoá chính và khoá ngoại <span class="badge">[6]</span>
+
+Trong hệ thống thật, dữ liệu không nằm trong một bảng to mà được tách thành nhiều bảng nối với nhau.
+
+- **Fact table** (bảng sự kiện): mỗi dòng là một sự kiện xảy ra, chứa các **measure**. Ví dụ mỗi dòng sản phẩm được bán.
+- **Dimension table** (bảng mô tả): mỗi dòng mô tả một đối tượng. Ví dụ mỗi khách hàng, mỗi sản phẩm.
+- **Khoá chính** (primary key, PK): cột định danh duy nhất mỗi dòng của một bảng. Ví dụ Product ID trong bảng sản phẩm.
+- **Khoá ngoại** (foreign key, FK): cột trong bảng này trỏ tới khoá chính của bảng khác. Ví dụ Product ID trong bảng giao dịch trỏ tới bảng sản phẩm.
+
+## Bài 2.4. Star schema <span class="badge">[6]</span>
+
+Star schema là cách tổ chức phổ biến nhất cho phân tích: **một fact table ở giữa**, các dimension table xung quanh như cánh sao.
+
+<StarSchema />
+
+Đọc sơ đồ: mỗi dòng của FactSales là một sản phẩm được bán. Muốn biết Segment của khách, nối qua Customer ID sang DimCustomer. Muốn "Sales theo Category", nối qua Product ID sang DimProduct rồi nhóm theo Category.
+
+## Bài 2.5. Normalization và denormalization <span class="badge lvl7">[7]</span>
+
+- **Normalization** (chuẩn hoá): tách bảng để **mỗi thông tin chỉ lưu ở một chỗ**. Đổi Segment của một khách thì chỉ sửa 1 dòng trong DimCustomer, không sợ chỗ sửa chỗ quên dẫn tới bất nhất.
+- **Denormalization** (phi chuẩn hoá): gộp bảng lại thành một bảng rộng để **đọc và phân tích nhanh**, chấp nhận thông tin bị lặp. File Superstore bạn đang dùng chính là một bảng đã denormalize.
+
+| | Normalization | Denormalization |
+| --- | --- | --- |
+| Mục tiêu | Tránh bất nhất, dễ cập nhật | Đọc nhanh, dễ phân tích |
+| Đổi lại | Phải nối (join) nhiều bảng khi phân tích | Dữ liệu lặp, dễ bất nhất khi cập nhật |
+| Thường thấy ở | Hệ thống giao dịch (bán hàng, kế toán) | File báo cáo, bảng cho dashboard |
+
+<div class="callout trap">**Bẫy:** khi nối bảng, nếu bảng dimension có khoá bị trùng (một Product ID xuất hiện 2 lần), mỗi dòng fact sẽ bị nhân đôi và tổng Sales bị phóng đại. Lỗi này gọi là **fan-out**, bạn sẽ thực hành ở Tuần 5.</div>
+
+<Quiz client:visible id="w02-q-schema" questions={[
+  { q: "Trong star schema bán hàng, bảng nào chứa cột Sales?", options: ["DimProduct", "FactSales", "DimCustomer"], answer: 1, explain: "Measure nằm ở fact table. Dimension table chỉ chứa thông tin mô tả." },
+  { q: "Vì sao không dùng Order ID làm khoá chính của bảng giao dịch Superstore?", options: ["Vì Order ID là chữ", "Vì một đơn có nhiều dòng sản phẩm nên Order ID bị lặp", "Vì Order ID không có trong bảng"], answer: 1, explain: "Khoá chính phải duy nhất. Order ID lặp ở mỗi dòng sản phẩm của cùng đơn, nên cần một Line ID (Row ID) riêng." },
+  { q: "Bảng khách hàng lưu Segment ở 1 chỗ, thay vì lặp lại trên mọi dòng giao dịch. Đây là ví dụ của?", options: ["Normalization", "Denormalization", "Fan-out"], answer: 0, explain: "Tách thông tin để mỗi thứ chỉ lưu một chỗ là normalization." },
+]} />
+
+## Thực hành Python <span class="badge">[6]</span>
+
+Dữ liệu là bản giả lập theo cấu trúc Superstore. Bấm **▶ Chạy**: lần đầu Python cần 10–20 giây để khởi động, những lần sau chạy ngay.
+
+### 1. Đọc dữ liệu
 
 Bấm **▶ Chạy**. Lần đầu Python cần 10–20 giây để khởi động, những lần sau chạy ngay.
 
@@ -30,7 +111,7 @@ print("Số dòng, số cột:", df.shape)
 print(df.dtypes)
 df.head()`} />
 
-## Thực hành 2: Tìm grain
+### 2. Tìm grain
 
 Hoàn thành code để đếm số đơn hàng thật, rồi bấm **✓ Kiểm tra**.
 
@@ -51,6 +132,8 @@ tests={[
   { code: "assert len(df) == 3039, 'Không được xoá hay lọc dòng của df trong bài này'", message: "Không sửa dữ liệu gốc", hidden: true },
 ]} />
 
+### 3. Kiểm tra khoá
+
 <PythonCell client:visible id="w02-key" title="Thử khoá Row ID" code={`import pandas as pd
 df = pd.read_csv("superstore_sample.csv")
 
@@ -68,7 +151,7 @@ tests={[
 
 <AnswerFirst client:visible id="w02-why-dup" question="Vì sao số dòng lớn hơn số Row ID duy nhất? Bạn sẽ xử lý thế nào trước khi tính tổng Sales?" answer="Có một dòng bị trùng hoàn toàn (cùng Row ID và mọi giá trị). Đây là lỗi data quality chiều 'duy nhất'. Trước khi tính tổng, cần loại dòng trùng bằng drop_duplicates() và ghi lại đã loại bao nhiêu dòng, rồi đối soát tổng Sales trước và sau." />
 
-## Thực hành 3: Lọc và sắp xếp
+### 4. Lọc và sắp xếp
 
 <PythonCell client:visible id="w02-top" title="Top 3 sản phẩm theo Sales ở Region West" code={`import pandas as pd
 df = pd.read_csv("superstore_sample.csv")
@@ -86,6 +169,76 @@ tests={[
   { code: "assert top3.is_monotonic_decreasing, 'Chưa sắp xếp giảm dần'", message: "Đã sắp xếp giảm dần" },
 ]} />
 
-## Bẫy cần nhớ
+### 5. Tách bảng dimension
 
-<div class="callout trap">**Trước khi đếm hay cộng bất cứ thứ gì, hỏi: một dòng là gì?** Đếm số dòng của bảng chi tiết đơn hàng không cho ra số đơn. Cộng một cột ở grain thấp lên grain cao (ví dụ cộng "tổng giá trị đơn" lặp lại ở mỗi dòng sản phẩm) làm tổng bị phóng đại.</div>
+<PythonCell client:visible id="w02-dim" title="Tách DimCustomer và kiểm tra khoá" code={`import pandas as pd
+df = pd.read_csv("superstore_sample.csv")
+
+# Tách bảng khách hàng: mỗi khách một dòng
+dim_customer = df[["Customer ID", "Customer Name", "Segment"]].drop_duplicates()
+
+print("Số khách:", len(dim_customer))
+dim_customer.head()`}
+tests={[
+  { code: "assert dim_customer['Customer ID'].is_unique, 'Customer ID trong dim_customer bị trùng: một khách có nhiều Segment?'", message: "Customer ID là khoá duy nhất của dim_customer" },
+  { code: "assert len(dim_customer) == df['Customer ID'].nunique()", message: "Số dòng bằng số khách khác nhau" },
+]} />
+
+<PythonCell client:visible id="w02-dim-product" title="Tách DimProduct: thử xem khoá có duy nhất không" code={`import pandas as pd
+df = pd.read_csv("superstore_sample.csv")
+
+dim_product = df[["Product ID", "Product Name", "Category", "Sub-Category"]].drop_duplicates()
+print("Số dòng dim_product:", len(dim_product), "| Số Product ID:", df["Product ID"].nunique())
+
+# Product ID nào xuất hiện nhiều hơn 1 lần?
+dim_product[dim_product["Product ID"].duplicated(keep=False)]`}
+tests={[
+  { code: "assert dim_product['Product ID'].is_unique, 'Có Product ID gắn với nhiều tên sản phẩm: lỗi data quality, ghi lại và giải thích'", message: "Product ID là khoá duy nhất của dim_product" },
+]} />
+
+<div class="callout">Ô trên cũng **cố ý không đạt**: dữ liệu có 1 Product ID mang 2 tên khác nhau. Nếu nối bảng này vào fact, các dòng của sản phẩm đó sẽ bị nhân đôi. Ghi lại lỗi và cách bạn sẽ xử lý (ví dụ giữ tên mới nhất) vào log.</div>
+
+## Luyện tập tình huống
+
+<Situation client:visible id="w02-th3" title="Tình huống 3. Vì sao 3 dòng dữ liệu chỉ có 2 đơn hàng?" context="Trưởng phòng cần báo cáo bán hàng tháng 01/2026 của khu vực East. Bản trích gồm ba dòng: đơn O-01 có một dòng Furniture (Sales 200 USD, Profit 40 USD) và một dòng Office Supplies (Sales 50 USD, Profit 10 USD); đơn O-02 có một dòng Furniture (Sales 100 USD, Profit −5 USD). Một đồng nghiệp đếm ba dòng nên báo cáo có ba đơn hàng." question="Xác định grain, measure và dimension. Nếu sếp muốn xem tổng East rồi đi sâu xuống từng Category, bạn roll-up và drill-down thế nào?">
+
+**Đáp án mẫu**
+
+- Grain: một dòng sản phẩm thuộc một đơn, không phải một đơn hoàn chỉnh.
+- Measure: Sales, Profit, Quantity. Dimension: Region, Category, Sub-Category, Order Date.
+
+| Chỉ tiêu | Kết quả |
+| --- | --- |
+| Số dòng sản phẩm | 3 |
+| Số đơn hàng (Order ID không trùng) | 2 |
+| Tổng Sales | 350 USD |
+| Tổng Profit | 45 USD |
+
+- Roll-up: tổng Sales East tháng 01/2026 = 350 USD.
+- Drill-down: East → Furniture 300 USD, Office Supplies 50 USD.
+
+**Lỗi hay gặp:** dùng số dòng để đếm số đơn; cộng các tỷ lệ Discount rồi coi đó là tỷ lệ giảm giá chung.
+
+</Situation>
+
+<Situation client:visible id="w02-th4" title="Tình huống 4. Vì sao cần tách một bảng thành nhiều bảng?" context="IT muốn xây cơ sở dữ liệu dùng chung cho báo cáo bán hàng. Trong Superstore, Segment lặp lại ở nhiều dòng cùng Customer ID, còn Category và Sub-Category lặp lại trên nhiều giao dịch của cùng sản phẩm. Đồng nghiệp đề xuất chia bảng lớn thành các bảng nhỏ, nhưng định dùng Order ID làm khoá chính cho bảng giao dịch." question="Đề xuất cách tổ chức theo star schema. Giải thích khoá chính, khoá ngoại và vai trò của normalization.">
+
+**Đáp án mẫu**
+
+- **FactSales:** Line ID (PK), Order ID, Customer ID (FK), Product ID (FK), Order Date, Ship Date, Region, Sales, Quantity, Discount, Profit.
+- **DimCustomer:** Customer ID (PK), Segment. **DimProduct:** Product ID (PK), Category, Sub-Category.
+- Khoá chính định danh duy nhất mỗi bản ghi; khoá ngoại trỏ tới khoá chính của bảng khác.
+- Normalization tách thông tin khách hàng và sản phẩm ra khỏi dòng giao dịch để không lặp lại.
+- Order ID không đủ làm khoá chính vì một đơn có nhiều dòng; cần Line ID riêng.
+- Star schema thường giữ nhiều thuộc tính mô tả trong cùng một dimension cho dễ phân tích, nên không nhất thiết chuẩn hoá hoàn toàn.
+
+**Lỗi hay gặp:** nghĩ mỗi Order ID ứng với đúng một dòng; nghĩ tách càng nhiều bảng càng tốt.
+
+</Situation>
+
+## Tóm tắt tuần
+
+- **Trước khi đếm hay cộng, hỏi: một dòng là gì?**
+- Báo cáo = measure theo dimension. Roll-up để thấy tổng, drill-down để tìm nguyên nhân.
+- Star schema: fact ở giữa chứa measure, dimension xung quanh chứa mô tả, nối bằng khoá.
+- Normalization tránh bất nhất; denormalization đọc nhanh. Khoá dimension bị trùng sẽ gây fan-out.
