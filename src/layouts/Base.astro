@@ -1,0 +1,19 @@
+---
+import '../styles.css';
+const { title } = Astro.props;
+const base = import.meta.env.BASE_URL.replace(/\/?$/, '/');
+---
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title} · Data LMS</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;600;700&display=swap" />
+  </head>
+  <body>
+    <header class="site"><div class="inner"><a class="brand" href={base}>Data LMS</a><span class="muted">Lộ trình Data 16 tuần cho người mới</span></div></header>
+    <main><slot /></main>
+  </body>
+</html>

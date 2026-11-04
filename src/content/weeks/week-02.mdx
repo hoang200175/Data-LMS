@@ -1,0 +1,91 @@
+---
+week: 2
+title: Grain và cách tổ chức dữ liệu
+minutes: 60
+---
+import PythonCell from '../../components/PythonCell.tsx';
+import AnswerFirst from '../../components/AnswerFirst.tsx';
+
+> Đây là **bài mẫu** của bản khung, để xem nhịp một bài học: vì sao cần biết → ý chính → thực hành có kiểm tra → bẫy cần nhớ. Dữ liệu là bản giả lập theo cấu trúc Superstore.
+
+## Vì sao cần biết <span class="badge lvl7">[7] Thành thạo</span>
+
+Sếp hỏi: "Năm nay mình có bao nhiêu đơn hàng?". Bạn mở file bán hàng, thấy 3,039 dòng và trả lời 3,039 đơn. Nhưng mỗi dòng của file này là **một sản phẩm trong một đơn**, không phải một đơn. Con số đúng nhỏ hơn nhiều. Lỗi này tên là **sai grain**.
+
+## Ý chính
+
+- **Grain** trả lời câu: *một dòng trong bảng đại diện cho cái gì?* (một đơn, một sản phẩm trong đơn, một khách hàng một ngày…)
+- Sai grain dẫn tới **đếm trùng** và **tổng sai**.
+- Cách kiểm tra: tìm tổ hợp cột mà mỗi dòng có một giá trị riêng (khoá). Nếu số dòng bằng số tổ hợp khoá duy nhất, bạn đã tìm đúng grain.
+- **Measure** là con số để cộng, trung bình (Sales, Profit). **Dimension** là thứ để chia nhóm (Region, Category).
+
+## Thực hành 1: Đọc dữ liệu
+
+Bấm **▶ Chạy**. Lần đầu Python cần 10–20 giây để khởi động, những lần sau chạy ngay.
+
+<PythonCell client:visible id="w02-read" title="Đọc file Superstore" code={`import pandas as pd
+
+df = pd.read_csv("superstore_sample.csv")
+print("Số dòng, số cột:", df.shape)
+print(df.dtypes)
+df.head()`} />
+
+## Thực hành 2: Tìm grain
+
+Hoàn thành code để đếm số đơn hàng thật, rồi bấm **✓ Kiểm tra**.
+
+<PythonCell client:visible id="w02-grain" title="Đếm đúng số đơn hàng" code={`import pandas as pd
+df = pd.read_csv("superstore_sample.csv")
+
+# 1) Số dòng của bảng
+so_dong = len(df)
+
+# 2) Số đơn hàng thật: đếm số Order ID khác nhau
+so_don = ...   # gợi ý: df["Order ID"].nunique()
+
+print("Số dòng:", so_dong, "| Số đơn:", so_don)`}
+tests={[
+  { code: "assert so_don != Ellipsis, 'Bạn chưa điền so_don'", message: "Đã điền giá trị cho so_don" },
+  { code: "assert so_don == df['Order ID'].nunique(), f'so_don = {so_don}, chưa phải số Order ID duy nhất'", message: "so_don là số Order ID duy nhất" },
+  { code: "assert so_don < so_dong, 'Số đơn phải nhỏ hơn số dòng vì một đơn có nhiều dòng'", message: "Số đơn nhỏ hơn số dòng" },
+  { code: "assert len(df) == 3039, 'Không được xoá hay lọc dòng của df trong bài này'", message: "Không sửa dữ liệu gốc", hidden: true },
+]} />
+
+<PythonCell client:visible id="w02-key" title="Thử khoá Row ID" code={`import pandas as pd
+df = pd.read_csv("superstore_sample.csv")
+
+# Row ID có phải khoá của bảng không? Số dòng có bằng số Row ID duy nhất không?
+print("Số dòng:", len(df))
+print("Số Row ID duy nhất:", df["Row ID"].nunique())
+
+# Nếu hai số khác nhau, tìm dòng gây ra chênh lệch:
+df[df.duplicated(keep=False)]`}
+tests={[
+  { code: "assert len(df) == df['Row ID'].nunique(), f'Có {len(df) - df[\"Row ID\"].nunique()} dòng dư: hãy giải thích vì sao trước khi sửa'", message: "Số dòng bằng số Row ID duy nhất" },
+]} />
+
+<div class="callout">Ô trên **cố ý không đạt**. Lộ trình cho phép tính là đạt nếu bạn giải thích được chênh lệch. Hãy xem dòng in ra và trả lời câu hỏi dưới đây.</div>
+
+<AnswerFirst client:visible id="w02-why-dup" question="Vì sao số dòng lớn hơn số Row ID duy nhất? Bạn sẽ xử lý thế nào trước khi tính tổng Sales?" answer="Có một dòng bị trùng hoàn toàn (cùng Row ID và mọi giá trị). Đây là lỗi data quality chiều 'duy nhất'. Trước khi tính tổng, cần loại dòng trùng bằng drop_duplicates() và ghi lại đã loại bao nhiêu dòng, rồi đối soát tổng Sales trước và sau." />
+
+## Thực hành 3: Lọc và sắp xếp
+
+<PythonCell client:visible id="w02-top" title="Top 3 sản phẩm theo Sales ở Region West" code={`import pandas as pd
+df = pd.read_csv("superstore_sample.csv")
+
+top3 = (
+    df[df["Region"] == "West"]
+    .groupby("Product Name")["Sales"].sum()
+    .sort_values(ascending=False)
+    .head(3)
+)
+print(top3)`}
+tests={[
+  { code: "assert len(top3) == 3, 'Cần đúng 3 sản phẩm'", message: "Có đúng 3 sản phẩm" },
+  { code: "assert top3.index[0] == 'Smartphone X', f'Sản phẩm đứng đầu đang là {top3.index[0]}'", message: "Sản phẩm đứng đầu là Smartphone X" },
+  { code: "assert top3.is_monotonic_decreasing, 'Chưa sắp xếp giảm dần'", message: "Đã sắp xếp giảm dần" },
+]} />
+
+## Bẫy cần nhớ
+
+<div class="callout trap">**Trước khi đếm hay cộng bất cứ thứ gì, hỏi: một dòng là gì?** Đếm số dòng của bảng chi tiết đơn hàng không cho ra số đơn. Cộng một cột ở grain thấp lên grain cao (ví dụ cộng "tổng giá trị đơn" lặp lại ở mỗi dòng sản phẩm) làm tổng bị phóng đại.</div>

@@ -1,0 +1,39 @@
+---
+import { getCollection } from 'astro:content';
+import Base from '../layouts/Base.astro';
+import { WEEKS, PHASES, pad } from '../lib/curriculum';
+const ready = new Set((await getCollection('weeks')).map((e) => e.data.week));
+const base = import.meta.env.BASE_URL.replace(/\/?$/, '/');
+const phases = [...new Set(WEEKS.map((w) => w.phase))];
+---
+<Base title="Lộ trình">
+  <h1>Lộ trình Data 16 tuần</h1>
+  <p>Mỗi tuần học lý thuyết và thực hành Python cùng một chủ đề. Code chạy ngay trên trình duyệt, không cần cài đặt. Tiến độ lưu trên máy của bạn.</p>
+  <p class="muted" id="summary"></p>
+  {phases.map((ph) => (
+    <section class="phase">
+      <h2>{ph === 0 ? '' : `Phase ${ph}: `}{PHASES[ph].name} <span class="muted">· {PHASES[ph].kind}</span></h2>
+      <div class="weeks">
+        {WEEKS.filter((w) => w.phase === ph).map((w) => {
+          const inner = (
+            <>
+              <div class="num"><span>Tuần {w.week}</span>{w.checkpoint && <span class="badge">Checkpoint</span>}{!ready.has(w.week) && <span class="badge">Sắp có</span>}</div>
+              <div class="t">{w.title}</div>
+              <div class="d">{w.theory}</div>
+            </>
+          );
+          return ready.has(w.week)
+            ? <a class="week" href={`${base}tuan/${pad(w.week)}/`} data-week={w.week}>{inner}</a>
+            : <div class="week soon">{inner}</div>;
+        })}
+      </div>
+    </section>
+  ))}
+  <script>
+    import { loadProgress } from '../lib/progress';
+    const p = loadProgress();
+    const n = Object.values(p.done).filter(Boolean).length;
+    const el = document.getElementById('summary');
+    if (el) el.textContent = n ? `Bạn đã đạt ${n} bài kiểm tra trên máy này.` : 'Bắt đầu từ Tuần 0 hoặc mở bài mẫu Tuần 2.';
+  </script>
+</Base>

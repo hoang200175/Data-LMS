@@ -1,0 +1,19 @@
+---
+import { getCollection, render } from 'astro:content';
+import Base from '../../layouts/Base.astro';
+import { WEEKS, PHASES, pad } from '../../lib/curriculum';
+
+export async function getStaticPaths() {
+  const entries = await getCollection('weeks');
+  return entries.map((entry) => ({ params: { week: pad(entry.data.week) }, props: { entry } }));
+}
+const { entry } = Astro.props;
+const { Content } = await render(entry);
+const meta = WEEKS.find((w) => w.week === entry.data.week)!;
+const base = import.meta.env.BASE_URL.replace(/\/?$/, '/');
+---
+<Base title={`Tuần ${meta.week}: ${entry.data.title}`}>
+  <p class="muted"><a href={base}>← Tất cả các tuần</a> · Phase {meta.phase}: {PHASES[meta.phase].name}{entry.data.minutes ? ` · khoảng ${entry.data.minutes} phút` : ''}</p>
+  <h1>Tuần {meta.week}: {entry.data.title}</h1>
+  <Content />
+</Base>
