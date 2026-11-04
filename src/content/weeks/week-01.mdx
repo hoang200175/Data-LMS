@@ -1,0 +1,215 @@
+---
+week: 1
+title: Dữ liệu là gì
+minutes: 240
+goals:
+  - "Phân biệt dữ liệu có cấu trúc, bán cấu trúc và phi cấu trúc, mỗi loại kể được 2 ví dụ trong công việc."
+  - "Giải thích một bộ dữ liệu được sinh ra như thế nào, và vì sao điều đó quyết định nó đại diện cho ai."
+  - "Phân loại biến categorical / numerical và 4 thang đo; biết phép tính nào được và không được làm."
+  - "Viết được đoạn Python đầu tiên với list, dict, vòng lặp và function."
+media:
+  - kind: audio
+    title: Tóm tắt Tuần 1 (podcast ngắn)
+    lang: Tiếng Việt
+    note: Nghe trước khi đọc để nắm bức tranh chung, hoặc nghe lại khi ôn.
+  - kind: video
+    title: Video tham khảo về các loại dữ liệu
+    lang: Tiếng Anh
+---
+import PythonCell from '../../components/PythonCell.tsx';
+import Quiz from '../../components/Quiz.tsx';
+import Situation from '../../components/Situation.tsx';
+
+**Cách học tuần này:** đọc 3 bài ngắn (mỗi bài 5–7 phút), làm câu hỏi nhanh sau mỗi bài, rồi sang phần Python. Cuối tuần làm 2 tình huống. Đừng vội: tuần 1 là nền cho cả 15 tuần sau.
+
+## Bài 1.1. Ba loại dữ liệu <span class="badge lvl7">[7]</span>
+
+Khi nói "dữ liệu", người làm business thường nghĩ ngay tới file Excel. Thực ra file Excel chỉ là **một trong ba** dạng dữ liệu bạn sẽ gặp. Cách phân biệt đơn giản nhất là hỏi: *dữ liệu này đã có khuôn sẵn chưa?*
+
+| Loại | Có khuôn không? | Ví dụ trong công việc | Phân tích thế nào |
+| --- | --- | --- | --- |
+| **Có cấu trúc** (structured) | Có. Mỗi dòng cùng các cột, mỗi cột cùng một kiểu | Bảng đơn hàng, bảng lương, file CSV xuất từ hệ thống bán hàng | Lọc, nhóm, cộng trực tiếp |
+| **Bán cấu trúc** (semi-structured) | Có tên trường (key) nhưng mỗi bản ghi có thể khác nhau, có thể lồng nhau | Nhật ký giao dịch JSON, dữ liệu trả về từ API, email (có tiêu đề, người gửi, nhưng nội dung tự do) | Phải "làm phẳng" thành bảng trước |
+| **Phi cấu trúc** (unstructured) | Không | Phản hồi khách hàng bằng chữ, ảnh hoá đơn, file ghi âm cuộc gọi | Phải trích xuất thông tin trước (ngoài phạm vi lộ trình) |
+
+Một ví dụ JSON (bán cấu trúc) về một đơn hàng:
+
+```json
+{"order_id": "OR-01", "customer": {"id": "CU-7", "segment": "Corporate"},
+ "items": [{"product": "Chair", "qty": 2}, {"product": "Paper", "qty": 5}]}
+```
+
+Đơn này có 2 sản phẩm lồng bên trong. Khi làm phẳng thành bảng, nó thành **2 dòng**, và `customer.id` thành một cột. Đây chính là lý do một Order ID xuất hiện nhiều lần trong file CSV, bạn sẽ gặp lại ở Tuần 2.
+
+<div class="callout">**Ý chính bắt buộc (dùng cho checkpoint):** có schema cố định dạng bảng / có key–tag nhưng cấu trúc linh hoạt / không có cấu trúc định sẵn. Mỗi loại 2 ví dụ.</div>
+
+<Quiz client:visible id="w01-q-types" questions={[
+  { q: "File Excel danh sách nhân viên, mỗi dòng một người, cột Họ tên, Phòng ban, Lương. Đây là loại dữ liệu nào?", options: ["Có cấu trúc", "Bán cấu trúc", "Phi cấu trúc"], answer: 0, explain: "Mỗi dòng có cùng các cột, mỗi cột cùng kiểu: đúng nghĩa có cấu trúc." },
+  { q: "Dữ liệu trả về từ API của sàn thương mại điện tử, mỗi đơn có danh sách sản phẩm lồng bên trong. Đây là loại nào?", options: ["Có cấu trúc", "Bán cấu trúc", "Phi cấu trúc"], answer: 1, explain: "Có tên trường rõ ràng nhưng lồng nhau và mỗi đơn có số sản phẩm khác nhau: bán cấu trúc (JSON)." },
+  { q: "500 bình luận khách hàng để lại trên fanpage. Đây là loại nào?", options: ["Có cấu trúc", "Bán cấu trúc", "Phi cấu trúc"], answer: 2, explain: "Văn bản tự do, không có cột hay trường định sẵn cho nội dung: phi cấu trúc." },
+]} />
+
+## Bài 1.2. Dữ liệu sinh ra từ đâu <span class="badge lvl7">[7]</span>
+
+Mỗi con số trong file đều được **một ai đó hoặc một hệ thống nào đó ghi lại vào một thời điểm nào đó**. Chuỗi sự kiện tạo ra dữ liệu gọi là *data-generating process* (DGP). Hiểu DGP giúp bạn trả lời câu hỏi quan trọng nhất trước mọi phân tích: **dữ liệu này đại diện cho ai, và bỏ sót ai?**
+
+Ví dụ với dữ liệu bán hàng Superstore:
+
+1. Khách đặt hàng → hệ thống tạo **Order ID** và ghi **Order Date**.
+2. Mỗi sản phẩm trong đơn được ghi thành **một dòng**, kèm giá, số lượng, chiết khấu.
+3. Khi giao hàng → hệ thống cập nhật **Ship Date**.
+4. Cuối kỳ, kế toán tính **Profit** theo quy tắc phân bổ chi phí.
+
+Từ đó suy ra những điều *không có trong file nhưng rất quan trọng*:
+
+- Khách **xem mà không mua** không có trong dữ liệu. File bán hàng không nói được tỷ lệ chuyển đổi.
+- Đơn **bị huỷ trước khi xác nhận** có thể không được ghi. Tỷ lệ huỷ tính từ file này có thể thấp hơn thực tế.
+- Profit là **con số tính ra theo quy tắc**, không phải đo trực tiếp. Đổi quy tắc phân bổ thì Profit đổi theo.
+
+**Vòng đời dữ liệu** đi theo các bước: phát sinh → ghi nhận → lưu trữ → xử lý/biến đổi → sử dụng (báo cáo, phân tích) → lưu trữ dài hạn hoặc xoá. Mỗi bước đều có thể làm sai lệch dữ liệu: nhập tay sai ở bước ghi nhận, lọc mất dòng ở bước xử lý.
+
+<div class="callout trap">**Bẫy:** coi file CSV là "sự thật". File chỉ chứa những gì quy trình ghi lại. Luôn hỏi: *ai/hệ thống nào ghi, ghi khi nào, cái gì không được ghi?*</div>
+
+<Quiz client:visible id="w01-q-dgp" questions={[
+  { q: "Bạn có dữ liệu khảo sát hài lòng chỉ gửi cho khách đã mua hàng 3 lần trở lên. Kết luận nào hợp lý nhất?", options: ["Kết quả đại diện cho toàn bộ khách hàng", "Kết quả chỉ đại diện cho khách trung thành, có thể cao hơn thực tế", "Không dùng được dữ liệu này"], answer: 1, explain: "DGP chọn sẵn khách trung thành, nên kết quả nghiêng về phía hài lòng. Vẫn dùng được, nhưng phải nói rõ đại diện cho ai." },
+  { q: "Trong file bán hàng, cột nào nhiều khả năng là con số được tính ra theo quy tắc chứ không phải ghi trực tiếp?", options: ["Order Date", "Quantity", "Profit"], answer: 2, explain: "Profit phụ thuộc cách phân bổ chi phí. Order Date và Quantity được ghi trực tiếp khi đặt hàng." },
+]} />
+
+## Bài 1.3. Kiểu biến và thang đo <span class="badge lvl7">[7]</span>
+
+Mỗi cột trong bảng là một **biến**. Trước khi tính toán, hãy xếp biến vào đúng loại, vì loại biến quyết định **phép tính nào có nghĩa**.
+
+**Hai nhóm lớn:**
+
+- **Categorical** (phân loại): giá trị là nhãn, dùng để chia nhóm. Ví dụ Region, Category, Segment.
+- **Numerical** (định lượng): giá trị là số đo được, cộng trừ có nghĩa. Ví dụ Sales, Quantity.
+
+**Bốn thang đo**, từ "ít phép tính" đến "nhiều phép tính":
+
+| Thang đo | Đặc điểm | Ví dụ | Được làm | Không được làm |
+| --- | --- | --- | --- | --- |
+| **Nominal** | Nhãn, không có thứ tự | Region, mã bưu điện, Customer ID | Đếm, tỷ trọng, mode | Sắp thứ tự, tính trung bình |
+| **Ordinal** | Có thứ tự, khoảng cách không đều | Hạng 1-2-3, mức hài lòng "thấp/vừa/cao" | Sắp thứ tự, median | Tính trung bình như số thật |
+| **Interval** <span class="badge">[5]</span> | Khoảng cách đều, **0 không có nghĩa thật** | Nhiệt độ °C, ngày tháng | Cộng trừ, chênh lệch | Nói "gấp đôi" |
+| **Ratio** <span class="badge">[5]</span> | Khoảng cách đều, **0 là "không có gì"** | Doanh thu, số lượng, thời gian giao hàng (ngày) | Mọi phép tính, kể cả "gấp đôi" | — |
+
+Hai câu để nhớ:
+
+- **Mã số không phải con số.** Customer ID 1024 không "lớn hơn" Customer ID 512. Trung bình của mã bưu điện là vô nghĩa.
+- **Có thứ tự chưa chắc có khoảng cách đều.** Hạng 1 và hạng 2 có thể cách nhau 1 giây, hạng 2 và hạng 3 cách nhau 10 phút. Trung bình hạng không nói được gì.
+
+Interval và ratio chỉ cần nhận biết: **điểm 0 có nghĩa thật hay không?** 0 °C không phải "không có nhiệt độ", nên 20 °C không "nóng gấp đôi" 10 °C. Doanh thu 0 là không bán được gì, nên 200 triệu đúng là gấp đôi 100 triệu.
+
+<Quiz client:visible id="w01-q-scales" questions={[
+  { q: "Đồng nghiệp mã hoá Region thành East=1, West=2, Central=3, South=4 rồi tính trung bình được 2,4. Con số này có ý nghĩa không?", options: ["Có, nghĩa là khách tập trung ở West", "Không, Region là nominal, mã số chỉ là nhãn", "Có, nếu số khách mỗi vùng bằng nhau"], answer: 1, explain: "Gán số cho nhãn không biến nó thành số đo. Với nominal chỉ đếm và tính tỷ trọng." },
+  { q: "Mức độ hài lòng được hỏi theo thang 1 (rất tệ) đến 5 (rất tốt). Thống kê nào an toàn nhất để mô tả?", options: ["Trung bình", "Median và tỷ lệ chọn 4–5", "Tổng điểm"], answer: 1, explain: "Đây là ordinal: có thứ tự nhưng khoảng cách giữa các mức không chắc đều. Median và tỷ lệ theo mức an toàn hơn trung bình." },
+  { q: "Câu nào đúng?", options: ["Ngày 20 'gấp đôi' ngày 10", "Doanh thu 200 triệu gấp đôi 100 triệu", "Nhiệt độ 20 °C nóng gấp đôi 10 °C"], answer: 1, explain: "Doanh thu là ratio (0 có nghĩa thật) nên nói 'gấp đôi' được. Ngày và °C là interval." },
+]} />
+
+## Thực hành Python <span class="badge">[6]</span>
+
+Tuần này chỉ cần Python cơ bản: biến, list, dict, vòng lặp, điều kiện và function. Mỗi ô có nút **✓ Kiểm tra**. Bạn được tra tài liệu, chỉ không xem lời giải.
+
+### 1. List và vòng lặp
+
+<PythonCell client:visible id="w01-py-list" title="Tổng và trung bình doanh thu tuần" code={`# Doanh thu 7 ngày (triệu đồng)
+doanh_thu = [120, 95, 130, 0, 150, 210, 180]
+
+# 1) Tính tổng bằng vòng lặp for (chưa dùng hàm sum)
+tong = 0
+for x in doanh_thu:
+    ...  # cộng dồn x vào tong
+
+# 2) Trung bình = tổng / số ngày
+trung_binh = ...
+
+# 3) Đếm số ngày doanh thu trên 100
+so_ngay_tren_100 = ...
+
+print(tong, trung_binh, so_ngay_tren_100)`}
+tests={[
+  { code: "assert tong == 885, f'tong đang là {tong}, cần 885'", message: "Tổng doanh thu đúng (885)" },
+  { code: "assert abs(trung_binh - 885/7) < 1e-9, f'trung_binh đang là {trung_binh}'", message: "Trung bình đúng" },
+  { code: "assert so_ngay_tren_100 == 5, f'so_ngay_tren_100 đang là {so_ngay_tren_100}, cần 5'", message: "Đếm đúng 5 ngày trên 100" },
+  { code: "assert doanh_thu == [120, 95, 130, 0, 150, 210, 180], 'Không sửa list gốc'", message: "Không sửa dữ liệu gốc", hidden: true },
+]} />
+
+### 2. Dict: dữ liệu có tên
+
+<PythonCell client:visible id="w01-py-dict" title="Doanh thu theo vùng" code={`doanh_thu_vung = {"East": 140, "West": 120, "Central": 80, "South": 60}
+
+# 1) Tổng doanh thu các vùng
+tong = ...
+
+# 2) Tỷ trọng của từng vùng (dict mới: vùng -> tỷ trọng, ví dụ 0.35)
+ty_trong = {}
+for vung, dt in doanh_thu_vung.items():
+    ...
+
+# 3) Vùng có doanh thu lớn nhất
+vung_lon_nhat = ...   # gợi ý: max(doanh_thu_vung, key=doanh_thu_vung.get)
+
+print(tong, ty_trong, vung_lon_nhat)`}
+tests={[
+  { code: "assert tong == 400, f'tong đang là {tong}'", message: "Tổng 4 vùng là 400" },
+  { code: "assert abs(ty_trong['East'] - 0.35) < 1e-9, 'Tỷ trọng East phải là 0.35'", message: "Tỷ trọng East = 0.35" },
+  { code: "assert abs(sum(ty_trong.values()) - 1) < 1e-9, 'Tổng tỷ trọng phải bằng 1 (100%)'", message: "Tổng tỷ trọng = 100%" },
+  { code: "assert vung_lon_nhat == 'East'", message: "Vùng lớn nhất là East" },
+]} />
+
+### 3. Function và điều kiện
+
+<PythonCell client:visible id="w01-py-func" title="Viết hàm tính tăng trưởng" code={`def tang_truong(ky_truoc, ky_nay):
+    """Trả về % tăng trưởng dạng số thập phân (0.5 nghĩa là +50%).
+    Nếu ky_truoc bằng 0 thì trả về None, vì không chia được."""
+    ...
+
+print(tang_truong(100, 150))   # kỳ vọng 0.5
+print(tang_truong(0, 50))      # kỳ vọng None`}
+tests={[
+  { code: "assert tang_truong(100, 150) == 0.5", message: "100 → 150 là +50%" },
+  { code: "assert abs(tang_truong(200, 150) - (-0.25)) < 1e-9", message: "200 → 150 là −25%" },
+  { code: "assert tang_truong(0, 50) is None, 'Kỳ trước bằng 0 phải trả về None'", message: "Kỳ trước bằng 0 trả về None" },
+  { code: "assert tang_truong(80, 80) == 0", message: "Không đổi thì tăng trưởng 0", hidden: true },
+]} />
+
+## Luyện tập tình huống
+
+Viết câu trả lời trước, rồi mới mở đáp án mẫu. Câu trả lời được lưu lại để bạn so sánh khi ôn.
+
+<Situation client:visible id="w01-th1" title="Tình huống 1. Một đơn hàng được tạo ra như thế nào?" context="Trưởng phòng Kinh doanh gửi bạn file Superstore.csv và yêu cầu tìm hiểu nguồn gốc dữ liệu trước khi lập báo cáo. Khi khách đặt hàng, hệ thống ghi nhận thông tin đơn và từng sản phẩm được mua; khi hàng được gửi đi, hệ thống cập nhật Ship Date. Ngoài file CSV, bộ phận IT lưu nhật ký giao dịch dạng JSON, còn bộ phận Chăm sóc khách hàng lưu phản hồi bằng văn bản tự do." question="Phân loại ba nguồn thành có cấu trúc, bán cấu trúc, phi cấu trúc. Dữ liệu Superstore phát sinh qua những bước nghiệp vụ nào, và vì sao không nên coi mỗi dòng là một đơn hàng độc lập?">
+
+**Đáp án mẫu**
+
+- Có cấu trúc: CSV Superstore (dòng và cột xác định).
+- Bán cấu trúc: nhật ký JSON (có tên trường, nhưng các bản ghi không bắt buộc cùng cấu trúc).
+- Phi cấu trúc: phản hồi văn bản tự do.
+- Quá trình phát sinh: khách đặt hàng → hệ thống ghi đơn và các dòng sản phẩm → ghi giá, số lượng, chiết khấu → phát sinh thông tin giao hàng → tính lợi nhuận theo quy tắc.
+- Một Order ID có thể xuất hiện nhiều lần vì một đơn chứa nhiều dòng sản phẩm.
+
+**Lỗi hay gặp:** cho rằng CSV luôn đầy đủ, chính xác mà không tìm hiểu cách dữ liệu được tạo ra; nhầm số dòng với số đơn hàng.
+
+</Situation>
+
+<Situation client:visible id="w01-th2" title="Tình huống 2. Có nên tính trung bình mọi cột dữ liệu?" context="Một đồng nghiệp muốn chuyển mọi cột thành số: mã hoá Region thành 1, 2, 3, 4 rồi tính 'vùng trung bình', đồng thời so sánh trực tiếp các giá trị Order Date. Nhóm còn tạo ba mức ưu đãi từ Discount: không giảm (0%), giảm thấp (trên 0% đến 10%), giảm cao (trên 10%)." question="Phân loại Region, mức ưu đãi vừa tạo, Order Date, Sales và Quantity theo bốn thang đo. Phép tính nào có ý nghĩa và không có ý nghĩa với từng loại?">
+
+**Đáp án mẫu**
+
+| Thang đo | Biến | Phép tính phù hợp |
+| --- | --- | --- |
+| Nominal | Region, Category, Segment | Phân nhóm, đếm, tỷ trọng; không có thứ tự |
+| Ordinal | Mức ưu đãi: không giảm, thấp, cao | Có thứ tự, khoảng cách giữa các mức không nhất thiết bằng nhau |
+| Interval | Order Date, Ship Date | Khoảng cách thời gian có ý nghĩa, nhưng không nói "gấp đôi" được |
+| Ratio | Sales, Quantity | Có số 0 thực; cộng, trung bình, so sánh tỷ lệ đều được |
+
+Gán mã số cho Region không biến vùng địa lý thành biến định lượng.
+
+**Lỗi hay gặp:** nhầm mã số (Customer ID, Product ID) với biến số học vì chúng chứa chữ số.
+
+</Situation>
+
+## Tóm tắt tuần
+
+- Dữ liệu có 3 dạng; chỉ dạng có cấu trúc là phân tích ngay được.
+- Trước khi phân tích, hỏi **ai ghi, ghi khi nào, cái gì không được ghi**.
+- Loại biến quyết định phép tính: **mã số không phải con số**, **có thứ tự chưa chắc khoảng cách đều**.

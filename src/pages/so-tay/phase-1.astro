@@ -1,0 +1,48 @@
+---
+import Base from '../../layouts/Base.astro';
+---
+<Base title="Sổ tay Phase 1">
+  <p class="muted no-print">Sổ tay tóm tắt để ôn nhanh hoặc in ra. <button onclick="window.print()">In / Lưu PDF</button></p>
+  <h1>Sổ tay Phase 1: Nền tảng dữ liệu</h1>
+
+  <h2>Tuần 1. Dữ liệu là gì</h2>
+  <table>
+    <tr><th>Khái niệm</th><th>Nhớ một câu</th></tr>
+    <tr><td>3 loại dữ liệu</td><td>Có cấu trúc (bảng, cột cố định) · bán cấu trúc (có key, linh hoạt, như JSON) · phi cấu trúc (văn bản, ảnh, âm thanh).</td></tr>
+    <tr><td>Data-generating process</td><td>Ai/hệ thống nào ghi, ghi khi nào, cái gì không được ghi → dữ liệu đại diện cho ai.</td></tr>
+    <tr><td>Kiểu biến</td><td>Categorical để chia nhóm; numerical để tính toán. Mã số không phải con số.</td></tr>
+    <tr><td>Nominal / ordinal</td><td>Nominal chỉ đếm; ordinal có thứ tự nhưng không tính trung bình như số thật.</td></tr>
+    <tr><td>Interval / ratio</td><td>Điểm 0 có nghĩa thật không? Có (doanh thu) thì nói "gấp đôi" được; không (°C, ngày) thì không.</td></tr>
+  </table>
+
+  <h2>Tuần 2. Grain và tổ chức dữ liệu</h2>
+  <table>
+    <tr><th>Khái niệm</th><th>Nhớ một câu</th></tr>
+    <tr><td>Grain</td><td>Một dòng là gì? Sai grain → đếm trùng, tổng sai. Kiểm tra: số dòng = số tổ hợp khoá duy nhất.</td></tr>
+    <tr><td>Measure / dimension</td><td>Measure để cộng (Sales); dimension để chia nhóm (Region). Báo cáo = measure theo dimension.</td></tr>
+    <tr><td>Roll-up / drill-down</td><td>Gộp lên để thấy tổng; đi sâu xuống để tìm nguyên nhân.</td></tr>
+    <tr><td>Fact / dimension table</td><td>Fact chứa sự kiện và measure; dimension chứa mô tả.</td></tr>
+    <tr><td>PK / FK</td><td>Khoá chính định danh duy nhất; khoá ngoại trỏ tới khoá chính bảng khác.</td></tr>
+    <tr><td>Star schema</td><td>Một fact ở giữa, các dimension xung quanh.</td></tr>
+    <tr><td>Normalization</td><td>Tách bảng: mỗi thông tin một chỗ, tránh bất nhất. Denormalization: gộp để đọc nhanh.</td></tr>
+  </table>
+
+  <h2>Tuần 3. Number sense</h2>
+  <table>
+    <tr><th>Khái niệm</th><th>Nhớ một câu</th></tr>
+    <tr><td>Fermi</td><td>Chia nhỏ thành tích các số dễ đoán, ghi giả định, nhắm đúng bậc độ lớn.</td></tr>
+    <tr><td>% và pp</td><td>2% → 3%: +1 pp, +50%. Luôn ghi rõ là pp hay %.</td></tr>
+    <tr><td>Base effect</td><td>Kỳ gốc thấp bất thường → tăng mạnh mà không tốt hơn. So cùng kỳ, quy về mỗi ngày.</td></tr>
+    <tr><td>Đóng góp tăng trưởng</td><td>Nhìn số tuyệt đối: +200% trên nền 10 nhỏ hơn +10% trên nền 1.000.</td></tr>
+    <tr><td>Cross-sectional / time series</td><td>So ai với ai trong cùng kỳ / xem xu hướng một chỉ tiêu theo thời gian.</td></tr>
+  </table>
+
+  <h2>Checklist trước khi gửi một con số</h2>
+  <ul>
+    <li>Một dòng của bảng là gì? Mình đang đếm dòng hay đếm đối tượng?</li>
+    <li>Dữ liệu do ai ghi, khi nào, bỏ sót ai?</li>
+    <li>Phép tính này có hợp với kiểu biến không?</li>
+    <li>Con số có đúng bậc độ lớn theo ước lượng Fermi không?</li>
+    <li>So hai tỷ lệ: đã ghi rõ pp hay %? Kỳ gốc có bất thường không?</li>
+  </ul>
+</Base>
