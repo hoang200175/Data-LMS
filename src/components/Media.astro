@@ -4,17 +4,25 @@
 type Props = { kind: 'video' | 'audio'; title: string; src?: string; note?: string; lang?: string; minutes?: number };
 const { kind, title, src, note, lang, minutes } = Astro.props;
 const base = import.meta.env.BASE_URL.replace(/\/?$/, '/');
+// Video: link YouTube thì nhúng iframe; file .mp4/.webm (ví dụ GitHub Releases) thì dùng thẻ <video>.
+const isFile = (u?: string) => !!u && /\.(mp4|webm|m4v)(\?|$)/i.test(u);
+const resolve = (u: string) => (u.startsWith('http') ? u : `${base}${u.replace(/^\//, '')}`);
 let embed: string | undefined;
+let videoFile: string | undefined;
 if (kind === 'video' && src) {
-  const m = src.match(/(?:youtu\.be\/|v=|embed\/)([\w-]{11})/);
-  embed = `https://www.youtube-nocookie.com/embed/${m ? m[1] : src}`;
+  if (isFile(src)) videoFile = resolve(src);
+  else {
+    const m = src.match(/(?:youtu\.be\/|v=|embed\/)([\w-]{11})/);
+    embed = `https://www.youtube-nocookie.com/embed/${m ? m[1] : src}`;
+  }
 }
-const audioSrc = kind === 'audio' && src ? (src.startsWith('http') ? src : `${base}${src.replace(/^\//, '')}`) : undefined;
+const audioSrc = kind === 'audio' && src ? resolve(src) : undefined;
 const meta = [kind === 'video' ? 'Video' : 'Audio', lang, minutes ? `${minutes} phút` : undefined].filter(Boolean).join(' · ');
 ---
 <figure class={`media ${src ? '' : 'empty'}`}>
   <figcaption><strong>{title}</strong> <span class="muted">· {meta}</span></figcaption>
   {embed && <div class="video"><iframe src={embed} title={title} loading="lazy" allowfullscreen allow="encrypted-media; picture-in-picture"></iframe></div>}
+  {videoFile && <video class="video-file" controls preload="metadata" src={videoFile}></video>}
   {audioSrc && <audio controls preload="none" src={audioSrc}></audio>}
   {!src && <p class="muted">{kind === 'audio' ? 'Audio tóm tắt tuần (NotebookLM) sắp có.' : 'Video sắp có.'}</p>}
   {note && <p class="media-note">{note}</p>}
