@@ -1,0 +1,202 @@
+---
+week: 4
+title: Tóm tắt một biến
+minutes: 240
+goals:
+  - "Chọn đúng mean hay median để báo cáo, và giải thích vì sao."
+  - "Đo độ phân tán bằng độ lệch chuẩn, IQR và percentile."
+  - "Nhận ra phân phối lệch và outlier, biết xử lý thế nào trước khi kết luận."
+  - "Chọn chart theo câu hỏi và kiểu biến; vẽ được histogram, boxplot, line, bar bằng matplotlib."
+  - "Dùng groupby để tóm tắt theo nhóm."
+media:
+  - kind: video
+    title: Video tóm tắt Tuần 4
+    lang: Tiếng Việt
+  - kind: audio
+    title: Podcast Tuần 4
+    lang: Tiếng Việt
+---
+import PythonCell from '../../components/PythonCell.tsx';
+import Quiz from '../../components/Quiz.tsx';
+import Situation from '../../components/Situation.tsx';
+
+Phase 2 là **phân tích mô tả** (descriptive): trả lời câu hỏi "chuyện gì đã xảy ra?". Nghe đơn giản, nhưng phần lớn kết luận sai trong công ty bắt nguồn từ một con số mô tả chọn sai. Tuần này bắt đầu với việc tóm tắt **một** biến.
+
+## Bài 4.1. Mean, median và khi nào chúng khác nhau <span class="badge lvl7">[7]</span>
+
+- **Mean** (trung bình cộng): tổng chia số phần tử.
+- **Median** (trung vị): giá trị đứng giữa khi xếp từ nhỏ đến lớn. Một nửa nhỏ hơn, một nửa lớn hơn.
+- **Mode**: giá trị xuất hiện nhiều nhất, hay dùng cho biến categorical.
+
+Ví dụ: lương của 5 nhân viên là 10, 12, 13, 15, 200 (triệu). Mean = 50 triệu, median = 13 triệu. "Lương trung bình 50 triệu" đúng về toán học nhưng **không mô tả được ai** trong nhóm.
+
+**Quy tắc:** phân phối lệch hoặc có outlier thì mean bị kéo về phía giá trị cực đoan, median ổn định hơn. Khi mean và median cách xa nhau, đó là tín hiệu phải nhìn phân phối.
+
+<div class="callout">**Ý chính bắt buộc:** phân phối lệch hoặc có outlier → mean bị kéo, median ổn định hơn.</div>
+
+## Bài 4.2. Độ phân tán và percentile <span class="badge lvl7">[7]</span>
+
+Hai cửa hàng cùng doanh thu trung bình 100 triệu/ngày. Cửa hàng A dao động 95–105, cửa hàng B dao động 20–300. Chỉ báo mean thì hai cửa hàng giống nhau, nhưng vận hành khác hẳn. **Độ phân tán** cho biết dữ liệu trải rộng cỡ nào.
+
+| Thước đo | Ý nghĩa | Khi nào dùng |
+| --- | --- | --- |
+| **Range** | Lớn nhất − nhỏ nhất | Nhìn nhanh, nhưng 1 outlier là sai lệch |
+| **Độ lệch chuẩn** (standard deviation) | Trung bình các giá trị cách mean bao xa | Phân phối gần đối xứng |
+| **Percentile** | P90 = 90% giá trị nhỏ hơn mức này | Mô tả "phần lớn" và "phần đuôi" |
+| **IQR** | P75 − P25: khoảng của 50% ở giữa | Phân phối lệch, có outlier |
+
+Percentile rất hữu dụng trong business: "90% đơn được giao trong 3 ngày" (P90 = 3 ngày) nói nhiều hơn "trung bình 2 ngày".
+
+## Bài 4.3. Hình dạng phân phối và outlier <span class="badge">[6]</span>
+
+- **Đối xứng**: mean ≈ median. Ví dụ chiều cao người trưởng thành.
+- **Lệch phải** (đuôi dài bên phải): mean lớn hơn median. Ví dụ doanh thu theo đơn, thu nhập, số lượt xem. **Phần lớn dữ liệu business có dạng này.**
+- **Outlier**: giá trị khác biệt hẳn phần còn lại. Quy tắc thường dùng: nằm ngoài khoảng P25 − 1,5×IQR đến P75 + 1,5×IQR.
+
+Outlier **không phải lúc nào cũng là lỗi**. Trước khi xoá, hỏi: đây là lỗi nhập liệu (giá 1 tỷ cho cây bút), hay một sự kiện thật (khách doanh nghiệp đặt đơn lớn)? Xoá outlier thật là xoá mất thông tin quan trọng nhất.
+
+<Quiz client:visible id="w04-q-center" questions={[
+  { q: "Doanh thu theo khách hàng có mean 5 triệu, median 1,2 triệu. Điều này cho thấy gì?", options: ["Phân phối lệch phải: một số ít khách chi rất nhiều", "Dữ liệu bị lỗi", "Phân phối đối xứng"], answer: 0, explain: "Mean lớn hơn hẳn median nghĩa là đuôi bên phải dài: vài khách lớn kéo mean lên." },
+  { q: "Báo cáo thời gian giao hàng cho khách, con số nào hữu ích nhất?", options: ["Thời gian trung bình", "P90: 90% đơn giao trong bao nhiêu ngày", "Thời gian lâu nhất"], answer: 1, explain: "P90 cho khách biết mức gần như chắc chắn, không bị vài đơn cực chậm hay cực nhanh làm sai lệch." },
+  { q: "Bạn thấy một đơn hàng 500 triệu trong khi các đơn khác dưới 20 triệu. Nên làm gì trước?", options: ["Xoá ngay vì là outlier", "Kiểm tra xem đây là lỗi nhập liệu hay đơn thật", "Thay bằng mean"], answer: 1, explain: "Outlier có thể là lỗi hoặc sự kiện thật quan trọng. Phải kiểm tra trước khi xử lý." },
+]} />
+
+## Bài 4.4. Chọn chart theo câu hỏi <span class="badge">[6]</span>
+
+Chart tốt bắt đầu từ **câu hỏi**, không phải từ dữ liệu.
+
+| Câu hỏi | Chart nên dùng | Ví dụ |
+| --- | --- | --- |
+| Giá trị phân bố thế nào? | Histogram, boxplot | Phân phối giá trị đơn hàng |
+| Thay đổi theo thời gian? | Line | Doanh thu theo tháng |
+| So sánh giữa các nhóm? | Bar (xếp theo độ lớn) | Doanh thu theo vùng |
+| Hai biến liên quan thế nào? | Scatter | Chiết khấu và lợi nhuận |
+| Tỷ trọng các phần? | Bar xếp chồng, hoặc pie khi chỉ 2–3 phần | Cơ cấu doanh thu theo Category |
+
+Ba lỗi hay gặp: dùng line cho biến categorical (nối các vùng bằng đường thẳng), trục y không bắt đầu từ 0 ở bar chart làm phóng đại chênh lệch, và pie chart có quá nhiều phần.
+
+## Thực hành Python <span class="badge">[6]</span>
+
+### 1. Mean, median, percentile
+
+<PythonCell client:visible id="w04-py-describe" title="Tóm tắt Sales" code={`import pandas as pd
+df = pd.read_csv("superstore_sample.csv").drop_duplicates()
+
+trung_binh = ...     # mean của Sales
+trung_vi = ...       # median của Sales
+p90 = ...            # percentile 90: df["Sales"].quantile(0.9)
+
+print("Mean:", round(trung_binh, 2), "| Median:", round(trung_vi, 2), "| P90:", round(p90, 2))
+df["Sales"].describe()`}
+tests={[
+  { code: "assert abs(trung_binh - df['Sales'].mean()) < 1e-6, 'trung_binh chưa đúng'", message: "Mean đúng" },
+  { code: "assert abs(trung_vi - df['Sales'].median()) < 1e-6, 'trung_vi chưa đúng'", message: "Median đúng" },
+  { code: "assert abs(p90 - df['Sales'].quantile(0.9)) < 1e-6, 'p90 chưa đúng'", message: "P90 đúng" },
+  { code: "assert trung_binh > trung_vi, 'Kiểm tra lại: Sales lệch phải nên mean phải lớn hơn median'", message: "Mean lớn hơn median (phân phối lệch phải)" },
+]} />
+
+### 2. Tìm outlier bằng quy tắc IQR
+
+<PythonCell client:visible id="w04-py-iqr" title="Outlier của Sales" code={`import pandas as pd
+df = pd.read_csv("superstore_sample.csv").drop_duplicates()
+
+q1 = df["Sales"].quantile(0.25)
+q3 = df["Sales"].quantile(0.75)
+iqr = ...
+can_tren = ...       # q3 + 1.5 * iqr
+
+outlier = df[df["Sales"] > can_tren]
+print("Cận trên:", round(can_tren, 2), "| Số dòng outlier:", len(outlier))
+outlier[["Order ID", "Product Name", "Quantity", "Sales"]].head()`}
+tests={[
+  { code: "assert abs(iqr - (q3 - q1)) < 1e-9, 'iqr = q3 - q1'", message: "IQR đúng" },
+  { code: "assert abs(can_tren - (q3 + 1.5 * iqr)) < 1e-9, 'can_tren = q3 + 1.5 * iqr'", message: "Cận trên đúng" },
+  { code: "assert len(outlier) == (df['Sales'] > q3 + 1.5 * (q3 - q1)).sum()", message: "Lọc đúng các dòng outlier" },
+]} />
+
+Nhìn các dòng outlier: chúng là lỗi hay là đơn thật (sản phẩm đắt, số lượng lớn)?
+
+### 3. Ba chart, ba câu hỏi
+
+<PythonCell client:visible id="w04-py-charts" title="Histogram, line và bar" code={`import pandas as pd
+import matplotlib.pyplot as plt
+df = pd.read_csv("superstore_sample.csv").drop_duplicates()
+df["Order Date"] = pd.to_datetime(df["Order Date"])
+
+fig, ax = plt.subplots(1, 3, figsize=(14, 3.6))
+
+# Câu hỏi 1: giá trị một dòng đơn hàng phân bố thế nào?
+ax[0].hist(df["Sales"], bins=40)
+ax[0].set_title("Phân phối Sales mỗi dòng: lệch phải")
+
+# Câu hỏi 2: doanh thu thay đổi thế nào theo tháng?
+theo_thang = df.groupby(df["Order Date"].dt.to_period("M"))["Sales"].sum()
+ax[1].plot(theo_thang.index.to_timestamp(), theo_thang.values)
+ax[1].set_title("Doanh thu theo tháng")
+
+# Câu hỏi 3: vùng nào bán nhiều nhất?
+theo_vung = df.groupby("Region")["Sales"].sum().sort_values()
+ax[2].barh(theo_vung.index, theo_vung.values)
+ax[2].set_title("Doanh thu theo vùng")
+
+plt.tight_layout()`}
+tests={[
+  { code: "assert len(theo_vung) == 4, 'Phải có 4 vùng'", message: "Có đủ 4 vùng" },
+  { code: "assert abs(theo_thang.sum() - df['Sales'].sum()) < 1e-6, 'Tổng theo tháng phải bằng tổng Sales'", message: "Tổng theo tháng khớp tổng Sales (đối soát)" },
+]} />
+
+### 4. groupby: tóm tắt theo nhóm
+
+<PythonCell client:visible id="w04-py-groupby" title="Mean và median theo Category" code={`import pandas as pd
+df = pd.read_csv("superstore_sample.csv").drop_duplicates()
+
+bang = df.groupby("Category")["Sales"].agg(["count", "mean", "median"])
+bang["mean/median"] = bang["mean"] / bang["median"]
+bang.round(2)`}
+tests={[
+  { code: "assert bang['count'].sum() == len(df), 'Tổng count các nhóm phải bằng số dòng'", message: "Tổng count khớp số dòng" },
+]} />
+
+## Luyện tập tình huống
+
+<Situation client:visible id="w04-th-anscombe" title="Tình huống: Anscombe's quartet" context="Bốn bộ dữ liệu nhỏ, mỗi bộ 11 cặp (x, y). Một đồng nghiệp tính mean, variance và hệ số tương quan của cả 4 bộ, thấy gần như giống hệt nhau, nên kết luận 4 bộ dữ liệu 'giống nhau'. Hãy chạy ô code bên dưới trước khi trả lời." question="Bốn bộ có thực sự giống nhau không? Bài học rút ra là gì?">
+
+**Đáp án mẫu**
+
+Thống kê tóm tắt giống nhau (mean x = 9, mean y ≈ 7,5, tương quan ≈ 0,82) nhưng hình dạng dữ liệu hoàn toàn khác: bộ I gần tuyến tính, bộ II là đường cong, bộ III có 1 outlier, bộ IV gần như mọi x bằng nhau trừ 1 điểm.
+
+**Bài học:** luôn vẽ dữ liệu. Con số tóm tắt có thể che giấu hoàn toàn cấu trúc thật.
+
+</Situation>
+
+<PythonCell client:visible id="w04-py-anscombe" title="Tính và vẽ Anscombe's quartet" code={`import pandas as pd
+import matplotlib.pyplot as plt
+
+x = [10, 8, 13, 9, 11, 14, 6, 4, 12, 7, 5]
+bo = {
+    "I":   (x, [8.04, 6.95, 7.58, 8.81, 8.33, 9.96, 7.24, 4.26, 10.84, 4.82, 5.68]),
+    "II":  (x, [9.14, 8.14, 8.74, 8.77, 9.26, 8.10, 6.13, 3.10, 9.13, 7.26, 4.74]),
+    "III": (x, [7.46, 6.77, 12.74, 7.11, 7.81, 8.84, 6.08, 5.39, 8.15, 6.42, 5.73]),
+    "IV":  ([8, 8, 8, 8, 8, 8, 8, 19, 8, 8, 8], [6.58, 5.76, 7.71, 8.84, 8.47, 7.04, 5.25, 12.50, 5.56, 7.91, 6.89]),
+}
+
+rows = []
+fig, ax = plt.subplots(1, 4, figsize=(14, 3), sharey=True)
+for i, (ten, (xs, ys)) in enumerate(bo.items()):
+    s = pd.DataFrame({"x": xs, "y": ys})
+    rows.append({"bộ": ten, "mean_x": s.x.mean(), "mean_y": s.y.mean(), "var_y": s.y.var(), "corr": s.x.corr(s.y)})
+    ax[i].scatter(xs, ys)
+    ax[i].set_title(f"Bộ {ten}")
+thong_ke = pd.DataFrame(rows).round(2)
+thong_ke`}
+tests={[
+  { code: "assert thong_ke['mean_y'].max() - thong_ke['mean_y'].min() < 0.01", message: "Mean y của 4 bộ gần như bằng nhau" },
+  { code: "assert thong_ke['corr'].max() - thong_ke['corr'].min() < 0.01", message: "Hệ số tương quan của 4 bộ gần như bằng nhau" },
+]} />
+
+## Tóm tắt tuần
+
+- Mean và median cách xa nhau → phân phối lệch → báo median và nhìn phân phối.
+- Báo kèm độ phân tán: IQR, percentile (P90) thường có ích hơn độ lệch chuẩn với dữ liệu business.
+- Outlier: kiểm tra là lỗi hay sự kiện thật trước khi xử lý.
+- Chart bắt đầu từ câu hỏi. **Luôn vẽ dữ liệu.**
