@@ -12,3 +12,8 @@ mode = "smart"
 BASE_PATH = "/"
 SITE_URL = "https://data-lms.pages.dev"
 NODE_VERSION = "22"
+
+# Worker data-lms-ai (workers/ai/) chạy cố định ở Mỹ; Pages gọi qua binding này.
+[[services]]
+binding = "AI_WORKER"
+service = "data-lms-ai"
