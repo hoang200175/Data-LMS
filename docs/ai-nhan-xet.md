@@ -40,3 +40,16 @@ Lưu ý hay gặp:
 ## Lỗi 403 "Request not allowed"
 
 Cloudflare mặc định chạy hàm ở trạm gần người dùng. Từ Việt Nam, trạm đó có thể là Hồng Kông, nơi Claude API không phục vụ, nên API trả 403. File `wrangler.toml` ở gốc repo bật Smart Placement (`placement.mode = "smart"`; Pages không cho chọn vùng cụ thể) để Cloudflare dời hàm tới gần máy chủ API. Vì có `wrangler.toml`, các biến thường (BASE_PATH, SITE_URL, NODE_VERSION) giờ khai báo trong file đó; riêng Secret vẫn đặt trên dashboard.
+
+## Worker `data-lms-ai` (chạy cố định ở Mỹ)
+
+Vì Pages không cho chọn vùng, phần gọi Claude nằm trong Worker riêng `workers/ai/` (placement `aws:us-east-1`, không có URL công khai). Pages gọi nó qua service binding `AI_WORKER` khai báo trong `wrangler.toml` và chuyển khoá theo mạng nội bộ Cloudflare, nên Worker không cần secret riêng.
+
+Deploy hoặc cập nhật Worker (một lần, trên máy đã cài Node 22):
+
+```
+npm ci
+cd workers/ai
+npx wrangler login     # đăng nhập Cloudflare trong trình duyệt
+npx wrangler deploy
+```

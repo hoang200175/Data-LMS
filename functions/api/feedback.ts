@@ -2,12 +2,13 @@
 // Khoá API nằm trong biến bí mật ANTHROPIC_API_KEY của dự án Cloudflare Pages, không bao giờ xuống trình duyệt.
 // GET  /api/feedback  -> { enabled } để trang biết có hiện nút hay không.
 // POST /api/feedback  -> { feedback } nhận xét bằng tiếng Việt.
-import Anthropic from '@anthropic-ai/sdk';
+import { callClaude } from '../../shared/claude';
 
 type Env = {
   ANTHROPIC_API_KEY?: string;
   AI_MODEL?: string;          // mặc định claude-opus-5-5
   AI_REQUIRE_ACCESS?: string; // "1": chỉ trả lời khi người dùng đã đăng nhập qua Cloudflare Access
+  AI_WORKER?: Fetcher;        // service binding tới Worker data-lms-ai (chạy ở Mỹ)
 };
 
 type Body = {
@@ -24,12 +25,6 @@ type Body = {
 const MAX_FIELD = 6000;
 const PER_MINUTE = 6;
 const hits = new Map<string, number[]>(); // giới hạn thô theo người dùng/IP trong một isolate
-
-const SYSTEM = `Bạn là trợ giảng của khoá "Data 16 tuần" cho nhân viên nghiệp vụ mới học phân tích dữ liệu (pandas, thống kê, dự báo). Học viên gửi bài làm của một ô Python hoặc câu trả lời một tình huống. Nhận xét bằng tiếng Việt, giọng đồng nghiệp tử tế, ngắn gọn (tối đa khoảng 180 chữ), theo đúng 3 mục:
-1. Điểm làm đúng (1–2 ý cụ thể).
-2. Điểm còn thiếu hoặc sai, gọi đúng tên bẫy nếu có (grain, fan-out, average of averages, Simpson, confounder, regression to the mean, survivorship, leakage, base rate…).
-3. Một gợi ý bước tiếp theo.
-Với bài code: không viết lời giải hoàn chỉnh; chỉ chỉ ra dòng hoặc ý cần sửa. Nếu có đáp án mẫu, dùng nó để đối chiếu nhưng không chép nguyên văn. Không bịa số liệu không có trong bài. Chỉ dùng văn bản thường, không dùng tiêu đề Markdown.`;
 
 function clip(s: unknown): string {
   return typeof s === 'string' ? s.slice(0, MAX_FIELD) : '';
@@ -85,28 +80,17 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
     return json({ error: 'Chưa có bài làm để nhận xét.' }, 400);
   }
 
-  const client = new Anthropic({ apiKey: env.ANTHROPIC_API_KEY });
-  try {
-    const msg = await client.beta.messages.create({
-      model: env.AI_MODEL || 'claude-opus-5-5',
-      max_tokens: 2000,
-      output_config: { effort: 'low' },
-      betas: ['server-side-fallback-2026-07-01'],
-      fallbacks: 'default',
-      system: SYSTEM,
-      messages: [{ role: 'user', content: parts.join('\n\n') }],
+  const model = env.AI_MODEL || 'claude-opus-5-5';
+  const prompt = parts.join('\n\n');
+  if (env.AI_WORKER) {
+    // Gọi qua Worker chạy ở Mỹ; khoá chỉ đi trong mạng nội bộ Cloudflare.
+    const r = await env.AI_WORKER.fetch('https://data-lms-ai/', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', 'x-anthropic-key': env.ANTHROPIC_API_KEY },
+      body: JSON.stringify({ model, prompt }),
     });
-    if (msg.stop_reason === 'refusal') return json({ error: 'AI không nhận xét được bài này. Hãy thử diễn đạt lại.' }, 422);
-    const text = msg.content.flatMap((c) => (c.type === 'text' ? [c.text] : [])).join('\n').trim();
-    return json({ feedback: text || 'AI không trả về nhận xét.' });
-  } catch (e) {
-    if (e instanceof Anthropic.RateLimitError) return json({ error: 'AI đang quá tải, thử lại sau ít phút.' }, 429);
-    if (e instanceof Anthropic.AuthenticationError) return json({ error: 'Khoá API trên máy chủ không hợp lệ.' }, 500);
-    if (e instanceof Anthropic.APIError) {
-      // Thông điệp lỗi của Anthropic không chứa khoá; trả ra để dễ chẩn đoán.
-      const detail = (e.error as { error?: { type?: string; message?: string } } | undefined)?.error;
-      return json({ error: `Lỗi từ AI (${e.status}).`, detail: detail ? `${detail.type}: ${detail.message}` : e.message }, 502);
-    }
-    return json({ error: 'Không kết nối được tới AI.' }, 502);
+    return new Response(r.body, { status: r.status, headers: { 'content-type': 'application/json; charset=utf-8' } });
   }
+  const out = await callClaude(env.ANTHROPIC_API_KEY, model, prompt);
+  return json(out.body, out.status);
 };
