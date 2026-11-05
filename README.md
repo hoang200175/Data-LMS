@@ -44,6 +44,8 @@ Video và audio tóm tắt tuần khai báo trong frontmatter, mục `media` (`k
 
 `public/datasets/superstore_sample.csv` là dữ liệu **giả lập** theo cấu trúc Superstore (sinh bằng `scripts/make_sample_superstore.py`), có cài sẵn 1 dòng trùng và 1 Product ID mang 2 tên cho bài data quality. Có thể thay bằng file Superstore gốc khi đã xác nhận điều khoản sử dụng.
 
+`public/datasets/titanic.csv` là bộ Titanic (891 hành khách) lấy từ seaborn-data (giấy phép BSD), dùng cho Phase 4.
+
 ## Deploy
 
 Workflow `.github/workflows/deploy.yml` build và đưa site lên GitHub Pages mỗi khi push lên `main`. Cần bật một lần: Settings → Pages → Source: **GitHub Actions**.

@@ -1,0 +1,196 @@
+---
+week: 9
+title: Tương quan, nhân quả và bias
+minutes: 270
+goals:
+  - "Phân biệt tương quan và nhân quả; tìm được confounder trong một kết luận."
+  - "Nhận ra sampling bias và 4 loại bias hay gặp: selection, survivorship, confirmation, thiếu dữ liệu không ngẫu nhiên."
+  - "Giải thích regression to the mean và vì sao cần nhóm control."
+  - "Giải thích vì sao chia ngẫu nhiên (randomization) giúp so sánh công bằng."
+  - "Làm một EDA end-to-end: câu hỏi, giả thuyết, bằng chứng, kết luận có ghi rõ tương quan hay nhân quả."
+media:
+  - kind: video
+    title: Video tóm tắt Tuần 9
+    lang: Tiếng Việt
+  - kind: audio
+    title: Podcast Tuần 9
+    lang: Tiếng Việt
+---
+import PythonCell from '../../components/PythonCell.tsx';
+import Quiz from '../../components/Quiz.tsx';
+import Situation from '../../components/Situation.tsx';
+
+Phase 4 chuyển từ "chuyện gì đã xảy ra" sang "**vì sao** nó xảy ra" và "**có thật** không". Đây là phase quan trọng nhất cho người làm business: phần lớn quyết định sai đến từ một kết luận nhân quả không có cơ sở.
+
+## Bài 9.1. Tương quan không phải nhân quả <span class="badge lvl7">[7]</span>
+
+Hai biến cùng tăng giảm (tương quan) có thể vì:
+
+1. **A gây ra B** (nhân quả thật).
+2. **B gây ra A** (đảo chiều): cửa hàng bán chạy nên được cấp thêm ngân sách quảng cáo, chứ không phải quảng cáo làm bán chạy.
+3. **Một biến thứ ba C gây ra cả A và B**: đây là **confounder** (biến gây nhiễu).
+4. **Tình cờ**, nhất là khi dữ liệu ít hoặc thử rất nhiều cặp biến.
+
+Ví dụ confounder: khách dùng app chi tiêu nhiều hơn khách không dùng app. App làm khách chi nhiều hơn? Có thể, nhưng cũng có thể **khách trung thành** vừa hay cài app vừa hay mua nhiều. "Mức trung thành" là confounder.
+
+<div class="callout">**Ý chính bắt buộc:** tương quan không chứng minh nhân quả. Trước khi nói "A làm tăng B", hỏi: có biến C nào gây ra cả hai không (confounder)? Mỗi kết luận phải ghi rõ là "tương quan" hay "nhân quả".</div>
+
+**Bẫy so sánh trước/sau:** "sau khi ra mắt tính năng, doanh thu tăng 15%". Nhưng trong cùng giai đoạn còn có mùa vụ, khuyến mãi khác, đối thủ thay đổi giá… So trước/sau mà không có nhóm so sánh thì không tách được tác động của tính năng.
+
+## Bài 9.2. Sampling và các loại bias <span class="badge lvl7">[7]</span>
+
+**Sampling** (lấy mẫu) là chọn một phần để suy ra toàn bộ. Mẫu chỉ đáng tin khi nó **đại diện** cho tổng thể. **Sampling bias** xảy ra khi cách chọn mẫu làm mẫu khác tổng thể một cách có hệ thống. Mẫu lớn **không** sửa được sampling bias.
+
+| Bias | Là gì | Ví dụ |
+| --- | --- | --- |
+| **Selection bias** | Cách chọn đối tượng làm kết quả lệch | Khảo sát online về thói quen dùng internet |
+| **Survivorship bias** | Chỉ nhìn những gì "sống sót" | Học bí quyết từ các startup thành công, bỏ qua hàng nghìn startup thất bại làm y hệt |
+| **Confirmation bias** | Chỉ tìm bằng chứng ủng hộ điều mình đã tin | Chỉ đọc phản hồi tích cực về sản phẩm mình làm |
+| **Thiếu dữ liệu không ngẫu nhiên** | Dữ liệu thiếu liên quan đến chính giá trị bị thiếu | Người thu nhập cao bỏ trống câu hỏi thu nhập (tuần 5) |
+
+Ví dụ kinh điển về survivorship: trong Thế chiến II, người ta định gia cố những chỗ trên máy bay trở về có nhiều vết đạn. Abraham Wald chỉ ra: phải gia cố chỗ **không** có vết đạn, vì máy bay trúng đạn ở đó đã không trở về.
+
+<Quiz client:visible id="w09-q-bias" questions={[
+  { q: "Khảo sát độ hài lòng chỉ gửi cho khách đã mua lại lần 2. Kết quả 95% hài lòng. Đây là bias gì?", options: ["Confirmation bias", "Survivorship / selection bias: khách không hài lòng đã rời đi", "Không có bias"], answer: 1, explain: "Mẫu chỉ gồm những khách 'sống sót', nên không đại diện cho toàn bộ khách." },
+  { q: "Khảo sát 50.000 người qua email của một trang tin công nghệ. Mẫu rất lớn nên kết quả đại diện cho cả nước?", options: ["Đúng, 50.000 là đủ lớn", "Sai: mẫu lớn không sửa được sampling bias", "Đúng nếu p-value nhỏ"], answer: 1, explain: "Người đọc trang tin công nghệ khác hẳn dân số chung. Thêm người cùng kiểu không làm mẫu đại diện hơn." },
+  { q: "Thành phố có nhiều cảnh sát hơn thì có nhiều tội phạm hơn. Kết luận nào hợp lý nhất?", options: ["Cảnh sát gây ra tội phạm", "Có thể là đảo chiều: nơi nhiều tội phạm được bố trí nhiều cảnh sát; hoặc quy mô dân số là confounder", "Nên giảm cảnh sát"], answer: 1, explain: "Tương quan có thể do đảo chiều nhân quả hoặc confounder (dân số)." },
+]} />
+
+## Bài 9.3. Regression to the mean <span class="badge lvl7">[7]</span>
+
+Kết quả quan sát = **năng lực thật** + **may rủi**. Khi chọn ra các đối tượng **cực đoan** (tệ nhất hoặc tốt nhất), ta chọn trúng cả những đối tượng đang gặp may rủi cực đoan. Kỳ sau may rủi không lặp lại, nên kết quả **tự quay về gần mức trung bình**, dù không ai làm gì cả.
+
+Ví dụ: chọn 10 cửa hàng có doanh số tệ nhất tháng này để đào tạo lại. Tháng sau cả 10 cửa hàng đều cải thiện. Đào tạo có hiệu quả không? **Chưa biết**: một phần (có khi toàn bộ) mức cải thiện là regression to the mean.
+
+<div class="callout">**Ý chính bắt buộc:** giá trị cực đoan tự quay về mức trung bình → muốn kết luận một can thiệp có hiệu quả, cần **nhóm control**: các đối tượng cực đoan tương tự nhưng không được can thiệp.</div>
+
+<PythonCell client:visible id="w09-py-rtm" title="Mô phỏng: 10 cửa hàng tệ nhất tự cải thiện" code={`import numpy as np
+rng = np.random.default_rng(9)
+
+so_ch = 200
+nang_luc = rng.normal(100, 10, so_ch)          # doanh số "thật" của mỗi cửa hàng
+thang_1 = nang_luc + rng.normal(0, 15, so_ch)  # cộng may rủi tháng 1
+thang_2 = nang_luc + rng.normal(0, 15, so_ch)  # may rủi tháng 2, KHÔNG có đào tạo
+
+te_nhat = np.argsort(thang_1)[:10]             # 10 cửa hàng tệ nhất tháng 1
+cai_thien = ...              # trung bình (thang_2 - thang_1) của 10 cửa hàng te_nhat
+
+tot_nhat = np.argsort(thang_1)[-10:]
+thay_doi_tot = (thang_2[tot_nhat] - thang_1[tot_nhat]).mean()
+
+print(f"10 cửa hàng tệ nhất: tháng 2 tăng trung bình {cai_thien:.1f}")
+print(f"10 cửa hàng tốt nhất: tháng 2 thay đổi trung bình {thay_doi_tot:.1f}")`}
+tests={[
+  { code: "assert abs(cai_thien - (thang_2[te_nhat] - thang_1[te_nhat]).mean()) < 1e-9, 'cai_thien chưa đúng'", message: "Tính đúng mức cải thiện" },
+  { code: "assert cai_thien > 10, 'Nhóm tệ nhất phải tự cải thiện rõ dù không đào tạo'", message: "Nhóm tệ nhất tự cải thiện mà không cần can thiệp" },
+  { code: "assert thay_doi_tot < -10", message: "Nhóm tốt nhất tự giảm: regression to the mean theo cả hai chiều" },
+]} />
+
+## Bài 9.4. Randomization: nhóm control và treatment <span class="badge lvl7">[7]</span>
+
+Cách mạnh nhất để chứng minh nhân quả là **thí nghiệm có chia ngẫu nhiên**:
+
+- **Treatment:** nhóm nhận can thiệp (được đào tạo, thấy giao diện mới).
+- **Control:** nhóm không nhận can thiệp, nhưng mọi thứ khác giống hệt.
+- **Chia ngẫu nhiên** (randomization): mỗi đối tượng được tung đồng xu để vào nhóm nào.
+
+Vì chia ngẫu nhiên, mọi confounder, **kể cả những thứ ta không đo được** (mức trung thành, tính cách, may rủi), được phân bổ gần đều giữa hai nhóm. Khác biệt sau thí nghiệm khi đó chủ yếu do can thiệp.
+
+<div class="callout">**Ý chính bắt buộc:** chia ngẫu nhiên làm các confounder phân bổ đều giữa 2 nhóm, nên khác biệt giữa treatment và control có thể quy cho can thiệp.</div>
+
+<PythonCell client:visible id="w09-py-random" title="Tự chọn nhóm và chia ngẫu nhiên" code={`import numpy as np
+rng = np.random.default_rng(1)
+
+n = 5000
+trung_thanh = rng.normal(50, 15, n)            # confounder ta không đo được
+
+# Cách 1: khách TỰ chọn cài app; khách trung thành hay cài hơn
+tu_chon = rng.random(n) < (trung_thanh / 100)
+lech_tu_chon = trung_thanh[tu_chon].mean() - trung_thanh[~tu_chon].mean()
+
+# Cách 2: chia ngẫu nhiên 50/50
+ngau_nhien = ...             # gợi ý: rng.random(n) < 0.5
+lech_ngau_nhien = ...        # chênh lệch mean trung_thanh giữa 2 nhóm ngẫu nhiên
+
+print(f"Tự chọn: chênh lệch mức trung thành {lech_tu_chon:.1f}")
+print(f"Ngẫu nhiên: chênh lệch mức trung thành {lech_ngau_nhien:.1f}")`}
+tests={[
+  { code: "assert abs(lech_ngau_nhien - (trung_thanh[ngau_nhien].mean() - trung_thanh[~ngau_nhien].mean())) < 1e-9", message: "Tính đúng chênh lệch ở nhóm ngẫu nhiên" },
+  { code: "assert abs(lech_ngau_nhien) < 1.5, f'Chênh lệch {lech_ngau_nhien:.2f} quá lớn'", message: "Chia ngẫu nhiên: hai nhóm gần như cân bằng" },
+  { code: "assert lech_tu_chon > 5", message: "Tự chọn: hai nhóm lệch nhau rõ (confounder)" },
+]} />
+
+## Thực hành: EDA end-to-end với Titanic <span class="badge lvl7">[7]</span>
+
+**EDA** (exploratory data analysis) là quy trình khám phá có kỷ luật:
+
+1. **Câu hỏi:** điều gì liên quan đến khả năng sống sót?
+2. **Giả thuyết:** "phụ nữ và trẻ em được ưu tiên lên xuồng", "hạng vé cao gần xuồng cứu sinh hơn".
+3. **Bằng chứng:** tính tỷ lệ, so sánh nhóm, vẽ chart.
+4. **Kết luận:** ghi rõ đây là **tương quan** hay có cơ sở **nhân quả**, và confounder nào có thể có.
+
+Dữ liệu: `titanic.csv`, 891 hành khách. Cột chính: `survived` (1 = sống sót), `pclass` (hạng vé 1–3), `sex`, `age`, `fare`.
+
+<PythonCell client:visible id="w09-py-titanic" title="Titanic: giới tính, hạng vé và confounder" code={`import pandas as pd
+import matplotlib.pyplot as plt
+t = pd.read_csv("titanic.csv")
+
+# Câu hỏi 1: giới tính
+theo_gioi = t.groupby("sex")["survived"].mean()
+
+# Câu hỏi 2: hạng vé
+theo_hang = ...              # tỷ lệ sống sót theo pclass
+
+# Câu hỏi 3: có phải hạng vé chỉ phản ánh giới tính? Tách cả hai chiều
+bang = t.pivot_table(index="pclass", columns="sex", values="survived", aggfunc="mean")
+co_cau = pd.crosstab(t["pclass"], t["sex"], normalize="index")   # tỷ lệ nữ trong mỗi hạng
+
+print(theo_gioi.round(3)); print(theo_hang.round(3))
+bang.plot(kind="bar", figsize=(6, 3.2), title="Tỷ lệ sống sót theo hạng vé × giới tính")
+print(co_cau.round(2))
+bang.round(3)`}
+tests={[
+  { code: "assert abs(theo_hang[1] - t[t.pclass==1].survived.mean()) < 1e-9 and len(theo_hang) == 3", message: "Tính đúng tỷ lệ sống sót theo hạng vé" },
+  { code: "assert (bang['female'] > bang['male']).all()", message: "Ở mọi hạng vé, nữ có tỷ lệ sống sót cao hơn nam" },
+  { code: "assert bang.loc[1, 'male'] > bang.loc[3, 'male'] and bang.loc[1, 'female'] > bang.loc[3, 'female']", message: "Trong cùng giới tính, hạng 1 vẫn sống sót nhiều hơn hạng 3" },
+]} />
+
+Viết kết luận của bạn trước khi đọc tiếp. Gợi ý: hạng 1 có tỷ lệ nữ cao hơn hạng 3, nên một phần chênh lệch theo hạng vé là do **giới tính** (confounder). Nhưng ngay cả khi tách theo giới tính, hạng 1 vẫn sống sót nhiều hơn, nên hạng vé có liên quan riêng. Đây vẫn là **tương quan**: hạng vé đi kèm vị trí cabin, sự giàu có, tiếng nói… ta không tách được nguyên nhân cụ thể.
+
+## Luyện tập tình huống
+
+<Situation client:visible id="w09-th-store" title="Tình huống: đào tạo lại 10 cửa hàng tệ nhất" context="Công ty chọn 10 cửa hàng có doanh số tháng 3 tệ nhất trong 200 cửa hàng để đào tạo lại quản lý. Tháng 4, cả 10 cửa hàng đều tăng doanh số, trung bình 18%. Ban giám đốc kết luận chương trình đào tạo hiệu quả và muốn triển khai toàn hệ thống." question="Kết luận này có vấn đề gì? Bạn sẽ thiết kế lại thế nào để đánh giá đúng?">
+
+**Đáp án mẫu**
+
+- **Regression to the mean:** chọn các cửa hàng tệ nhất là chọn trúng cả những cửa hàng gặp tháng xui. Tháng sau, kể cả không làm gì, chúng cũng có xu hướng tăng về mức trung bình.
+- Cũng có thể có bẫy trước/sau: tháng 4 có mùa vụ hay khuyến mãi khác không?
+- **Thiết kế lại:** lấy 20 cửa hàng tệ nhất, **chia ngẫu nhiên** 10 vào đào tạo (treatment), 10 không (control). So mức tăng của hai nhóm. Hiệu quả đào tạo = chênh lệch giữa hai mức tăng.
+
+</Situation>
+
+<Situation client:visible id="w09-th-survey" title="Tình huống: 95% khách hài lòng" context="Phòng CSKH gửi khảo sát hài lòng cho những khách đã quay lại mua lần thứ hai trong quý. Kết quả: 95% hài lòng. Báo cáo gửi lên ghi: 'Khách hàng của chúng ta rất hài lòng với dịch vụ.'" question="Có vấn đề gì với cách lấy mẫu? Nên khảo sát thế nào?">
+
+**Đáp án mẫu**
+
+- **Survivorship / selection bias:** khách không hài lòng đã rời đi nên không nằm trong mẫu. 95% là độ hài lòng của những khách "sống sót", không phải của toàn bộ khách.
+- **Nên:** gửi khảo sát cho một **mẫu ngẫu nhiên** từ tất cả khách đã mua (kể cả khách không quay lại); theo dõi riêng tỷ lệ phản hồi của từng nhóm; kết hợp với dữ liệu hành vi như tỷ lệ quay lại và tỷ lệ khiếu nại.
+
+</Situation>
+
+<Situation client:visible id="w09-th-coffee" title="Tình huống: cà phê giúp sống thọ?" context="Một bài báo viết: 'Nghiên cứu trên 400.000 người cho thấy người uống 2–3 tách cà phê mỗi ngày có tỷ lệ tử vong thấp hơn 12% so với người không uống. Hãy uống cà phê để sống thọ hơn.'" question="Kết luận 'cà phê giúp sống thọ' có đúng không? Những confounder nào có thể có?">
+
+**Đáp án mẫu**
+
+- Đây là **tương quan** từ dữ liệu quan sát, không phải thí nghiệm chia ngẫu nhiên, nên chưa chứng minh nhân quả.
+- **Confounder có thể:** thu nhập và lối sống (người có điều kiện uống cà phê quán, chăm sóc sức khoẻ tốt hơn); sức khoẻ nền (người bệnh thường được khuyên bỏ cà phê, nên nhóm "không uống" có nhiều người bệnh hơn: đảo chiều nhân quả); công việc, mức vận động.
+- Mẫu 400.000 người lớn **không** sửa được confounder.
+
+</Situation>
+
+## Tóm tắt tuần
+
+- Tương quan có thể do nhân quả, đảo chiều, confounder hoặc tình cờ. Ghi rõ "tương quan" hay "nhân quả".
+- Bias: selection, survivorship, confirmation, thiếu không ngẫu nhiên. Mẫu lớn không sửa được bias.
+- Chọn đối tượng cực đoan → regression to the mean → cần nhóm control.
+- Chia ngẫu nhiên làm confounder phân bổ đều: cách mạnh nhất để kết luận nhân quả.
