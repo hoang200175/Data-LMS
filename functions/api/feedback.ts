@@ -102,7 +102,11 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
   } catch (e) {
     if (e instanceof Anthropic.RateLimitError) return json({ error: 'AI đang quá tải, thử lại sau ít phút.' }, 429);
     if (e instanceof Anthropic.AuthenticationError) return json({ error: 'Khoá API trên máy chủ không hợp lệ.' }, 500);
-    if (e instanceof Anthropic.APIError) return json({ error: `Lỗi từ AI (${e.status}).` }, 502);
+    if (e instanceof Anthropic.APIError) {
+      // Thông điệp lỗi của Anthropic không chứa khoá; trả ra để dễ chẩn đoán.
+      const detail = (e.error as { error?: { type?: string; message?: string } } | undefined)?.error;
+      return json({ error: `Lỗi từ AI (${e.status}).`, detail: detail ? `${detail.type}: ${detail.message}` : e.message }, 502);
+    }
     return json({ error: 'Không kết nối được tới AI.' }, 502);
   }
 };
