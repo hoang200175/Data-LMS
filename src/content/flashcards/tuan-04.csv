@@ -1,0 +1,16 @@
+front,back,tag
+"Mean, median, mode khác nhau thế nào?","Mean: tổng chia số lượng. Median: giá trị đứng giữa khi xếp tăng dần. Mode: giá trị xuất hiện nhiều nhất (hợp cho biến phân loại).",tuan-04
+"Sales 5 đơn: 20, 25, 30, 35, 890. Mean và median?","Mean = 1.000 / 5 = 200. Median = 30. Một đơn lớn kéo mean lên gấp gần 7 lần median; mean không còn đại diện cho đơn ""điển hình"".",tuan-04
+"Khi nào nên báo median thay vì mean?","Khi phân phối lệch hoặc có outlier (doanh thu đơn hàng, thu nhập, thời gian giao hàng). Median ít bị ảnh hưởng bởi vài giá trị cực lớn.",tuan-04
+"Vậy mean còn dùng làm gì nếu dễ bị lệch?","Khi cần tổng: mean × số đơn = tổng doanh thu. Median không làm được việc này. Báo cả hai khi dữ liệu lệch.",tuan-04
+"Percentile P90 nghĩa là gì?","Giá trị mà 90% quan sát nhỏ hơn hoặc bằng nó. Ví dụ P90 của thời gian giao = 6 ngày: 90% đơn giao trong 6 ngày trở xuống.",tuan-04
+"IQR là gì?","Khoảng tứ phân vị = P75 − P25: độ rộng của 50% giá trị ở giữa. Ít bị outlier ảnh hưởng hơn range (max − min).",tuan-04
+"Độ lệch chuẩn (standard deviation) cho biết gì?","Mức các giá trị phân tán quanh mean, cùng đơn vị với dữ liệu. Nhỏ: các giá trị sát nhau; lớn: chênh lệch nhiều. Cũng bị outlier kéo lớn.",tuan-04
+"Hai cửa hàng cùng mean doanh thu ngày 10.000 USD. Có kết luận hai cửa hàng như nhau được không?","Không. Cần xem độ phân tán: một cửa hàng có thể ổn định 9–11 nghìn, cửa hàng kia dao động 2–30 nghìn. Một con số trung tâm không đủ.",tuan-04
+"Phân phối lệch phải (right-skewed) trông thế nào?","Phần lớn giá trị nhỏ, đuôi dài kéo về phía giá trị lớn. Thường gặp ở doanh thu, giá trị đơn hàng. Khi đó mean > median.",tuan-04
+"Quy tắc 1,5 × IQR để đánh dấu outlier?","Giá trị nhỏ hơn P25 − 1,5×IQR hoặc lớn hơn P75 + 1,5×IQR bị đánh dấu là outlier. Đánh dấu để xem xét, không phải để xoá tự động.",tuan-04
+"Tìm thấy một đơn Sales 22.638 USD trong khi median là 54. Có nên xoá không?","Trước tiên hỏi: lỗi nhập liệu hay giao dịch thật (ví dụ khách doanh nghiệp mua máy in hàng loạt)? Giao dịch thật thì giữ, có thể phân tích riêng. Chỉ sửa/xoá khi có bằng chứng là lỗi.",tuan-04
+"Histogram và boxplot dùng khi nào?","Cả hai cho biến số. Histogram cho thấy hình dạng phân phối (lệch, nhiều đỉnh). Boxplot gọn, cho thấy median, IQR, outlier và tiện so sánh nhiều nhóm.",tuan-04
+"Muốn so sánh số đơn theo Region thì dùng chart gì?","Bar chart, vì Region là biến phân loại. Không dùng histogram (dành cho biến số) và không dùng line (Region không có thứ tự thời gian).",tuan-04
+"Python/pandas: lấy median, P90 và vẽ histogram của Sales?","df['Sales'].median(); df['Sales'].quantile(0.9); df['Sales'].plot.hist(bins=50) (matplotlib). df['Sales'].describe() cho nhanh count, mean, std, min, P25, P50, P75, max.",tuan-04
+"Python/pandas: Sales trung vị theo Region?","df.groupby('Region')['Sales'].median()",tuan-04
