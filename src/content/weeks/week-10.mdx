@@ -1,0 +1,181 @@
+---
+week: 10
+title: Kiểm định và A/B test
+minutes: 270
+goals:
+  - "Đọc đúng confidence interval và p-value, không mắc ngộ nhận 'p là xác suất H0 đúng'."
+  - "Phân biệt ý nghĩa thống kê và ý nghĩa thực tế."
+  - "Đọc kết quả một A/B test và viết kết luận có trách nhiệm."
+  - "Biết khi nào dùng t-test, khi nào dùng chi-square test; chạy được bằng scipy."
+  - "Hiểu vì sao cần tính sample size trước khi chạy thí nghiệm."
+media:
+  - kind: video
+    title: Video tóm tắt Tuần 10
+    lang: Tiếng Việt
+  - kind: audio
+    title: Podcast Tuần 10
+    lang: Tiếng Việt
+---
+import PythonCell from '../../components/PythonCell.tsx';
+import Quiz from '../../components/Quiz.tsx';
+import Situation from '../../components/Situation.tsx';
+
+Tuần 9 dạy rằng muốn chứng minh nhân quả thì nên chia ngẫu nhiên. Tuần này dạy cách **đọc kết quả** của thí nghiệm đó: khác biệt quan sát được là thật hay chỉ do may rủi, và có đáng để hành động không.
+
+## Bài 10.1. Confidence interval <span class="badge">[6]</span>
+
+Bạn đo tỷ lệ chuyển đổi trên 1.000 khách: 10%. Nếu đo lại trên 1.000 khách khác, con số sẽ hơi khác (8,9%, 11,2%…). **Confidence interval** (khoảng tin cậy, CI) cho biết khoảng dao động hợp lý của con số thật.
+
+> CI 95% của một tỷ lệ ≈ p ± 1,96 × √(p × (1 − p) / n)
+
+Với p = 10%, n = 1.000: 10% ± 1,9 pp, tức **8,1% đến 11,9%**. Với n = 10.000: 10% ± 0,6 pp.
+
+Cách đọc đúng: "nếu lặp lại việc lấy mẫu rất nhiều lần, khoảng 95% các khoảng tính theo cách này sẽ chứa giá trị thật". Cách đọc thực dụng: **khoảng càng hẹp, ước lượng càng chắc**. Mẫu lớn gấp 4 lần thì khoảng hẹp đi một nửa (nhớ sd/√n của tuần 8).
+
+<PythonCell client:visible id="w10-py-ci" title="Tính CI 95% cho tỷ lệ chuyển đổi" code={`import numpy as np
+
+def ci_95(p, n):
+    sai_so = ...             # 1.96 * căn(p * (1 - p) / n)
+    return p - sai_so, p + sai_so
+
+for n in [100, 1000, 10000]:
+    thap, cao = ci_95(0.10, n)
+    print(f"n = {n:>6}: {thap:.1%} đến {cao:.1%}")`}
+tests={[
+  { code: "lo, hi = ci_95(0.10, 1000); assert abs(lo - (0.1 - 1.96*np.sqrt(0.09/1000))) < 1e-9 and abs(hi - (0.1 + 1.96*np.sqrt(0.09/1000))) < 1e-9", message: "CI đúng với p = 10%, n = 1.000" },
+  { code: "a = ci_95(0.1, 1000); b = ci_95(0.1, 4000); assert abs((b[1]-b[0]) / (a[1]-a[0]) - 0.5) < 1e-9", message: "Mẫu gấp 4 thì khoảng hẹp đi một nửa" },
+]} />
+
+## Bài 10.2. p-value và ý nghĩa thống kê <span class="badge">[6]</span>
+
+Một A/B test bắt đầu từ giả định **H0** (null hypothesis): "A và B không khác nhau, mọi chênh lệch là do may rủi".
+
+**p-value** = nếu H0 đúng (thật sự không khác nhau), xác suất thấy chênh lệch **lớn bằng hoặc hơn** chênh lệch quan sát được.
+
+- p nhỏ (thường dưới 0,05): chênh lệch như vậy **khó xảy ra do may rủi** → "có ý nghĩa thống kê".
+- p lớn: chênh lệch có thể chỉ do may rủi → **chưa đủ bằng chứng**. Không có nghĩa là "chứng minh A và B giống nhau".
+
+Ba ngộ nhận cần tránh:
+
+| Ngộ nhận | Thực ra |
+| --- | --- |
+| p = 0,03 nghĩa là 3% khả năng H0 đúng | p tính **khi giả định H0 đúng**; nó không phải xác suất H0 đúng |
+| p nhỏ nghĩa là hiệu ứng lớn | Mẫu rất lớn thì hiệu ứng rất nhỏ cũng cho p nhỏ |
+| p = 0,06 nghĩa là không có hiệu ứng | Chỉ là chưa đủ bằng chứng với cỡ mẫu này |
+
+## Bài 10.3. Ý nghĩa thống kê khác ý nghĩa thực tế <span class="badge lvl7">[7]</span>
+
+- **Ý nghĩa thống kê:** chênh lệch có khó là ngẫu nhiên không? (p-value)
+- **Ý nghĩa thực tế:** chênh lệch có **đủ lớn để đáng làm** không? (so với chi phí, rủi ro, công sức)
+
+Với 1 triệu user mỗi nhóm, B hơn A 0,01 pp vẫn có thể cho p < 0,001. Nhưng 0,01 pp có thể không bù nổi chi phí phát triển và bảo trì tính năng.
+
+<div class="callout">**Ý chính bắt buộc:** p nhỏ chỉ cho biết hiệu ứng khó là ngẫu nhiên, không cho biết hiệu ứng lớn hay đáng làm. Luôn báo **độ lớn hiệu ứng kèm CI**, rồi so với ngưỡng đáng làm về mặt kinh doanh.</div>
+
+## Bài 10.4. Đọc kết quả A/B test <span class="badge">[6]</span>
+
+Quy trình đọc một A/B test:
+
+1. **Metric chính** đã định nghĩa trước chưa? (tử số, mẫu số: tuần 6)
+2. **Chia ngẫu nhiên** đúng chưa? Hai nhóm có cân bằng về các đặc điểm chính không?
+3. **Độ lớn hiệu ứng** và **CI** là bao nhiêu?
+4. **p-value** là bao nhiêu?
+5. Hiệu ứng có **đủ lớn** để đáng triển khai không? Metric đối trọng (guardrail) có xấu đi không?
+
+Kết quả cho sẵn: conversion A = 10%, B = 12%.
+
+<PythonCell client:visible id="w10-py-ab" title="Cùng chênh lệch 2 pp, hai kết luận khác nhau" code={`from scipy.stats import chi2_contingency
+
+def ab_test(n, ty_le_A=0.10, ty_le_B=0.12):
+    mua_A, mua_B = round(n * ty_le_A), round(n * ty_le_B)
+    bang = [[mua_A, n - mua_A],
+            [mua_B, n - mua_B]]
+    chi2, p, dof, ky_vong = chi2_contingency(bang)
+    return p
+
+p_1000 = ...                 # ab_test với n = 1.000 mỗi nhóm
+p_10000 = ...                # ab_test với n = 10.000 mỗi nhóm
+
+print(f"n = 1.000 mỗi nhóm:  p = {p_1000:.3f}")
+print(f"n = 10.000 mỗi nhóm: p = {p_10000:.6f}")`}
+tests={[
+  { code: "assert abs(p_1000 - ab_test(1000)) < 1e-12 and p_1000 > 0.05, f'p_1000 = {p_1000}'", message: "n = 1.000: p ≈ 0,17, chưa đủ bằng chứng" },
+  { code: "assert abs(p_10000 - ab_test(10000)) < 1e-12 and p_10000 < 0.001", message: "n = 10.000: p dưới 0,001, có ý nghĩa thống kê" },
+]} />
+
+**Kết luận mẫu:**
+
+- n = 1.000: chênh lệch 2 pp **chưa đủ bằng chứng** (p ≈ 0,17). Không kết luận B tốt hơn; cũng không kết luận B bằng A. Cần mẫu lớn hơn.
+- n = 10.000: chênh lệch 2 pp **khó là ngẫu nhiên** (p dưới 0,001). Nếu 2 pp đáng giá về kinh doanh và guardrail không xấu đi, có thể triển khai B.
+- Cùng chênh lệch mà kết luận khác vì **mẫu lớn hơn làm ước lượng chắc hơn** (CI hẹp hơn), nên cùng mức chênh lệch trở nên khó giải thích bằng may rủi.
+
+## Bài 10.5. t-test, chi-square test và sample size <span class="badge">[5]</span>
+
+| Test | Dùng khi | Ví dụ | scipy |
+| --- | --- | --- | --- |
+| **Chi-square** | So **tỷ lệ** giữa các nhóm (biến categorical) | Tỷ lệ chuyển đổi A và B | `chi2_contingency` |
+| **t-test** | So **trung bình** của biến numerical giữa 2 nhóm | Giá trị đơn trung bình A và B | `ttest_ind` |
+
+**Sample size:** trước khi chạy thí nghiệm, tính cần bao nhiêu người để phát hiện được chênh lệch mình quan tâm. Quy tắc nhanh (độ tin cậy 95%, power 80%): mỗi nhóm cần khoảng **16 × p × (1 − p) / δ²**, với δ là chênh lệch muốn phát hiện. Ví dụ: p = 10%, muốn phát hiện +2 pp → 16 × 0,1 × 0,9 / 0,02² = **3.600 người mỗi nhóm**. Chạy với 1.000 người là quá ít, như kết quả ở trên.
+
+Muốn phát hiện chênh lệch nhỏ gấp đôi thì cần mẫu **gấp 4 lần**.
+
+<PythonCell client:visible id="w10-py-ttest" title="t-test và sample size" code={`import numpy as np
+from scipy.stats import ttest_ind
+
+# Giá trị đơn (nghìn đồng) của 2 nhóm trong một A/B test, mô phỏng
+rng = np.random.default_rng(10)
+don_A = rng.lognormal(mean=5.0, sigma=0.6, size=3000)
+don_B = rng.lognormal(mean=5.05, sigma=0.6, size=3000)
+
+ket_qua = ttest_ind(don_B, don_A)
+chenh_lech = don_B.mean() - don_A.mean()
+print(f"Chênh lệch trung bình: {chenh_lech:.1f} nghìn | p = {ket_qua.pvalue:.4f}")
+
+def co_mau(p, delta):
+    ...                      # 16 * p * (1 - p) / delta**2, làm tròn bằng round()
+
+print("Cần mỗi nhóm:", co_mau(0.10, 0.02), "người để phát hiện +2 pp")
+print("Cần mỗi nhóm:", co_mau(0.10, 0.01), "người để phát hiện +1 pp")`}
+tests={[
+  { code: "assert co_mau(0.10, 0.02) == 3600, f'Đang ra {co_mau(0.10, 0.02)}'", message: "p = 10%, δ = 2 pp → 3.600 mỗi nhóm" },
+  { code: "assert abs(co_mau(0.10, 0.01) / co_mau(0.10, 0.02) - 4) < 0.01", message: "Chênh lệch nhỏ một nửa → mẫu gấp 4" },
+  { code: "assert 0 <= ket_qua.pvalue <= 1", message: "Chạy được t-test" },
+]} />
+
+<Quiz client:visible id="w10-q-test" questions={[
+  { q: "A/B test cho p = 0,03. Câu nào đúng?", options: ["Có 3% khả năng A và B giống nhau", "Nếu A và B thật sự giống nhau, chỉ khoảng 3% khả năng thấy chênh lệch lớn như vậy", "B tốt hơn A 97%"], answer: 1, explain: "p-value tính khi giả định H0 đúng. Nó không phải xác suất H0 đúng." },
+  { q: "A/B test với 200 người mỗi nhóm cho p = 0,40. Nên kết luận gì?", options: ["A và B giống nhau", "Chưa đủ bằng chứng; mẫu có thể quá nhỏ để phát hiện khác biệt", "B tệ hơn A"], answer: 1, explain: "p lớn chỉ có nghĩa là chưa đủ bằng chứng, nhất là với mẫu nhỏ." },
+  { q: "So sánh giá trị đơn trung bình giữa 2 nhóm thì dùng test nào?", options: ["Chi-square", "t-test", "Không cần test"], answer: 1, explain: "t-test so trung bình của biến numerical; chi-square so tỷ lệ." },
+]} />
+
+## Luyện tập tình huống
+
+<Situation client:visible id="w10-th-ab" title="Tình huống: B tăng 0,01 pp với p dưới 0,001" context="Một A/B test trên 1 triệu user mỗi nhóm cho thấy giao diện B tăng tỷ lệ chuyển đổi từ 5,00% lên 5,01% (tăng 0,01 pp), p dưới 0,001. Product manager đề xuất triển khai B ngay cho toàn bộ user. Chi phí phát triển và bảo trì B ước tính 2 tỷ đồng/năm." question="Bạn có đồng ý triển khai ngay không? Cần xem thêm gì?">
+
+**Đáp án mẫu**
+
+- **Có ý nghĩa thống kê nhưng có thể không có ý nghĩa thực tế.** p nhỏ vì mẫu rất lớn; hiệu ứng 0,01 pp là rất nhỏ.
+- Quy ra tiền: thêm 0,01 pp chuyển đổi mang lại bao nhiêu doanh thu/lợi nhuận mỗi năm? So với chi phí 2 tỷ/năm.
+- Xem thêm: **CI** của hiệu ứng (có thể gần 0), các **guardrail metric** (tốc độ trang, tỷ lệ huỷ), và tác động dài hạn.
+- Chỉ triển khai nếu lợi ích ước tính vượt chi phí với biên an toàn.
+
+</Situation>
+
+<Situation client:visible id="w10-th-small" title="Tình huống: thí nghiệm 'không có tác dụng'" context="Team marketing thử email cá nhân hoá trên 300 khách (150 nhận email mới, 150 nhận email cũ). Tỷ lệ mua: 8,0% so với 6,0%, p = 0,50. Báo cáo kết luận: 'Email cá nhân hoá không có tác dụng, dừng dự án.'" question="Kết luận này có đúng không? Bạn đề xuất gì?">
+
+**Đáp án mẫu**
+
+- **Sai cách đọc:** p = 0,50 nghĩa là **chưa đủ bằng chứng**, không phải "chứng minh không có tác dụng".
+- Mẫu quá nhỏ: để phát hiện +2 pp với p khoảng 6–8%, cần khoảng 16 × 0,07 × 0,93 / 0,02² ≈ **2.600 người mỗi nhóm**, nhiều hơn rất xa 150.
+- **Đề xuất:** tính sample size trước, chạy lại với đủ mẫu; nếu không đủ khách, nói rõ thí nghiệm chưa kết luận được.
+
+</Situation>
+
+## Tóm tắt tuần
+
+- CI cho khoảng dao động hợp lý; mẫu gấp 4 thì khoảng hẹp một nửa.
+- p-value: xác suất thấy chênh lệch như vậy **nếu H0 đúng**. Không phải xác suất H0 đúng.
+- p nhỏ ≠ hiệu ứng lớn. Luôn hỏi: hiệu ứng có đáng làm không?
+- p lớn ≠ không có hiệu ứng. Có thể mẫu quá nhỏ.
+- Chi-square cho tỷ lệ, t-test cho trung bình. Tính sample size trước khi chạy.

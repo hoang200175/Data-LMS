@@ -1,0 +1,197 @@
+---
+week: 11
+title: Phân rã driver
+minutes: 270
+goals:
+  - "Phân rã một chỉ tiêu thành driver tree và tính đóng góp của từng driver."
+  - "Tách thay đổi doanh thu thành price, volume và mix."
+  - "Phân biệt leading và lagging indicator."
+  - "Nhận ra trend và seasonality trước khi so sánh hai kỳ."
+  - "Hiểu feedback loop: khi metric và hành động ảnh hưởng ngược lại nhau."
+media:
+  - kind: video
+    title: Video tóm tắt Tuần 11
+    lang: Tiếng Việt
+  - kind: audio
+    title: Podcast Tuần 11
+    lang: Tiếng Việt
+---
+import PythonCell from '../../components/PythonCell.tsx';
+import Quiz from '../../components/Quiz.tsx';
+import Situation from '../../components/Situation.tsx';
+
+"Doanh thu giảm 10%, vì sao?" là câu hỏi người làm data nhận nhiều nhất. Tuần này cho bạn một cách trả lời có cấu trúc: **tách chỉ tiêu thành các thành phần**, đo thành phần nào đóng góp bao nhiêu, rồi mới đi tìm nguyên nhân.
+
+## Bài 11.1. Driver tree <span class="badge lvl7">[7]</span>
+
+**Driver tree** (cây động lực) viết một chỉ tiêu thành **tích hoặc tổng** của các thành phần nhỏ hơn, mỗi thành phần là thứ có người chịu trách nhiệm và có thể tác động:
+
+> Doanh thu = Số đơn × Số dòng mỗi đơn × Giá trị mỗi dòng
+>
+> Số đơn = Lượt truy cập × Tỷ lệ chuyển đổi
+
+Khi doanh thu thay đổi, tính **đóng góp** của từng driver bằng cách thay lần lượt từng thành phần từ kỳ cũ sang kỳ mới:
+
+| Bước | Đóng góp |
+| --- | --- |
+| Số đơn | (O₁ − O₀) × L₀ × V₀ |
+| Số dòng mỗi đơn | O₁ × (L₁ − L₀) × V₀ |
+| Giá trị mỗi dòng | O₁ × L₁ × (V₁ − V₀) |
+
+Tổng ba đóng góp **đúng bằng** tổng chênh lệch doanh thu. Thứ tự thay khác nhau cho con số hơi khác, nên hãy giữ một thứ tự cố định và ghi rõ trong báo cáo.
+
+<div class="callout">**Ý chính bắt buộc:** phân rã chỉ tiêu thành các driver, tính đóng góp của từng driver, và `assert` tổng các đóng góp bằng tổng chênh lệch. Phân rã cho biết **ở đâu** thay đổi, chưa cho biết **vì sao**.</div>
+
+<PythonCell client:visible id="w11-py-driver" title="Driver tree doanh thu 2023 → 2024" code={`import pandas as pd
+df = pd.read_csv("superstore_sample.csv").drop_duplicates()
+df["nam"] = pd.to_datetime(df["Order Date"]).dt.year
+
+g = df.groupby("nam").agg(O=("Order ID", "nunique"), N=("Sales", "size"), S=("Sales", "sum"))
+g["L"] = g["N"] / g["O"]      # số dòng mỗi đơn
+g["V"] = g["S"] / g["N"]      # giá trị mỗi dòng
+k0, k1 = g.loc[2023], g.loc[2024]
+
+dg_so_don = (k1.O - k0.O) * k0.L * k0.V
+dg_dong_moi_don = ...        # O1 × (L1 − L0) × V0
+dg_gia_tri_dong = ...        # O1 × L1 × (V1 − V0)
+tong_chenh = k1.S - k0.S
+
+print(g.round(2))
+print(f"Số đơn: {dg_so_don:,.0f} | Dòng/đơn: {dg_dong_moi_don:,.0f} | Giá trị/dòng: {dg_gia_tri_dong:,.0f} | Tổng: {tong_chenh:,.0f}")`}
+tests={[
+  { code: "assert abs(dg_dong_moi_don - k1.O * (k1.L - k0.L) * k0.V) < 1e-6, 'dg_dong_moi_don chưa đúng'", message: "Đóng góp của số dòng mỗi đơn đúng" },
+  { code: "assert abs(dg_so_don + dg_dong_moi_don + dg_gia_tri_dong - tong_chenh) < 1e-6, 'Tổng các đóng góp phải bằng tổng chênh lệch'", message: "Tổng 3 đóng góp = tổng chênh lệch doanh thu" },
+  { code: "assert abs(dg_gia_tri_dong) > abs(dg_dong_moi_don)", message: "Driver lớn nhất: giá trị mỗi dòng" },
+]} />
+
+Đọc kết quả: số đơn không đổi (400 mỗi năm), nên doanh thu giảm gần như hoàn toàn vì **giá trị mỗi dòng** giảm. Câu hỏi tiếp theo: giá mỗi sản phẩm giảm, hay khách chuyển sang mua sản phẩm rẻ hơn? PVM trả lời câu này.
+
+## Bài 11.2. Price, volume, mix <span class="badge">[6]</span>
+
+**PVM** tách thay đổi doanh thu giữa hai kỳ thành ba phần:
+
+- **Volume:** bán **nhiều hay ít** đơn vị hơn, giả sử cơ cấu và giá giữ nguyên.
+- **Mix:** **cơ cấu** sản phẩm thay đổi: chuyển sang nhóm đắt hay nhóm rẻ.
+- **Price:** **giá** của từng nhóm thay đổi.
+
+Với Pᵢ là giá trung bình mỗi đơn vị của nhóm i, Qᵢ là số lượng, P̄₀ là giá trung bình chung kỳ gốc:
+
+| Thành phần | Công thức |
+| --- | --- |
+| Volume | (tổng Q₁ − tổng Q₀) × P̄₀ |
+| Mix | Σ (tỷ trọng₁ᵢ − tỷ trọng₀ᵢ) × tổng Q₁ × P₀ᵢ |
+| Price | Σ (P₁ᵢ − P₀ᵢ) × Q₁ᵢ |
+
+Ba phần cộng lại đúng bằng tổng chênh lệch doanh thu.
+
+<PythonCell client:visible id="w11-py-pvm" title="PVM theo Category, 2023 → 2024" code={`import pandas as pd
+df = pd.read_csv("superstore_sample.csv").drop_duplicates()
+df["nam"] = pd.to_datetime(df["Order Date"]).dt.year
+
+c = df[df["nam"].isin([2023, 2024])].groupby(["Category", "nam"]).agg(Q=("Quantity", "sum"), S=("Sales", "sum")).unstack("nam")
+Q0, Q1 = c[("Q", 2023)], c[("Q", 2024)]
+S0, S1 = c[("S", 2023)], c[("S", 2024)]
+P0, P1 = S0 / Q0, S1 / Q1
+gia_tb_0 = S0.sum() / Q0.sum()
+
+volume = (Q1.sum() - Q0.sum()) * gia_tb_0
+mix = ((Q1 / Q1.sum() - Q0 / Q0.sum()) * Q1.sum() * P0).sum()
+price = ...                  # tổng (P1 − P0) × Q1
+tong_chenh = S1.sum() - S0.sum()
+
+print(pd.DataFrame({"Q 2023": Q0, "Q 2024": Q1, "Giá 2023": P0.round(1), "Giá 2024": P1.round(1)}))
+print(f"Volume: {volume:,.0f} | Mix: {mix:,.0f} | Price: {price:,.0f} | Tổng: {tong_chenh:,.0f}")`}
+tests={[
+  { code: "assert abs(price - ((P1 - P0) * Q1).sum()) < 1e-6, 'price = ((P1 - P0) * Q1).sum()'", message: "Price effect đúng" },
+  { code: "assert abs(volume + mix + price - tong_chenh) < 1e-6, 'Tổng 3 thành phần phải bằng tổng chênh lệch'", message: "Volume + mix + price = tổng chênh lệch" },
+  { code: "assert mix < 0 and abs(mix) > abs(price)", message: "Mix âm là phần lớn nhất: khách chuyển sang nhóm rẻ" },
+]} />
+
+Đọc kết quả: tổng số lượng bán **tăng** (Office Supplies tăng mạnh), nhưng Office Supplies chỉ khoảng 13/đơn vị còn Technology hơn 300/đơn vị. Cơ cấu dịch về nhóm rẻ nên **mix** kéo doanh thu xuống mạnh. Nếu chỉ nhìn "doanh thu giảm", ta có thể kết luận sai là "bán kém đi".
+
+## Bài 11.3. Leading và lagging indicator <span class="badge">[6]</span>
+
+- **Lagging indicator** (chỉ số trễ): đo **kết quả** đã xảy ra. Doanh thu quý, lợi nhuận, tỷ lệ khách rời bỏ năm. Chính xác nhưng biết thì đã muộn.
+- **Leading indicator** (chỉ số sớm): báo hiệu **trước** kết quả. Số lượt dùng thử, số đơn trong pipeline, số ticket phàn nàn tuần này, tỷ lệ khách giảm tần suất mua.
+
+Một bộ KPI tốt có cả hai: lagging để biết mình đạt mục tiêu chưa, leading để kịp hành động. Leading indicator phải được kiểm chứng: nó có thật sự đi trước kết quả không?
+
+## Bài 11.4. Trend và seasonality <span class="badge">[6]</span>
+
+Chuỗi thời gian thường gồm:
+
+- **Trend:** xu hướng dài hạn (tăng dần, giảm dần).
+- **Seasonality:** mẫu hình **lặp lại theo chu kỳ** cố định (tháng 12 cao vì mua sắm cuối năm, tháng Tết thấp với B2B).
+- **Nhiễu:** phần dao động còn lại.
+
+Bẫy phổ biến: so **tháng này với tháng trước** khi có mùa vụ. Tháng 12 tăng 30% so với tháng 11 có thể chỉ là mùa vụ. Cách so đúng: so **cùng kỳ năm trước** (tháng 12 năm nay với tháng 12 năm ngoái), hoặc so với nhóm control.
+
+<PythonCell client:visible id="w11-py-season" title="Tìm tháng cao điểm lặp lại" code={`import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+
+# Doanh số 4 năm của một chuỗi bán lẻ (mô phỏng): trend + mùa vụ + nhiễu
+rng = np.random.default_rng(11)
+thang = pd.date_range("2022-01-01", periods=48, freq="MS")
+mua_vu = np.array([0.9, 0.8, 0.95, 1.0, 1.0, 0.95, 0.9, 0.95, 1.0, 1.05, 1.2, 1.4])
+doanh_so = pd.Series(1000 * (1 + 0.01 * np.arange(48)) * np.tile(mua_vu, 4) * rng.normal(1, 0.03, 48), index=thang)
+
+theo_thang_trong_nam = doanh_so.groupby(doanh_so.index.month).mean()
+thang_cao_diem = ...         # tháng có theo_thang_trong_nam lớn nhất: .idxmax()
+
+# So tháng 12/2025 với tháng 11/2025, và với tháng 12/2024
+so_thang_truoc = doanh_so["2025-12-01"] / doanh_so["2025-11-01"] - 1
+so_cung_ky = ...             # doanh_so["2025-12-01"] / doanh_so["2024-12-01"] - 1
+
+doanh_so.plot(figsize=(9, 3.2), title="Doanh số theo tháng")
+print(f"Tháng cao điểm: {thang_cao_diem} | 12 so với 11: {so_thang_truoc:+.0%} | so cùng kỳ: {so_cung_ky:+.0%}")`}
+tests={[
+  { code: "assert thang_cao_diem == 12, f'Đang ra {thang_cao_diem}'", message: "Tháng cao điểm lặp lại: tháng 12" },
+  { code: "assert abs(so_cung_ky - (doanh_so['2025-12-01'] / doanh_so['2024-12-01'] - 1)) < 1e-9", message: "Tính đúng mức tăng so với cùng kỳ" },
+  { code: "assert so_thang_truoc > so_cung_ky + 0.05", message: "So với tháng trước phóng đại tăng trưởng nhiều so với so cùng kỳ" },
+]} />
+
+## Bài 11.5. Feedback loop <span class="badge">[5]</span>
+
+**Feedback loop** (vòng phản hồi): kết quả của một metric làm thay đổi hành động, và hành động đó lại làm thay đổi chính metric.
+
+Ví dụ: hệ thống gợi ý chỉ đẩy sản phẩm đang bán chạy → sản phẩm đó càng bán chạy → càng được đẩy. Sản phẩm mới không có cơ hội được nhìn thấy, nên dữ liệu "cho thấy" chúng bán kém. Khi đọc dữ liệu từ một hệ thống có vòng phản hồi, hãy hỏi: con số này phản ánh nhu cầu thật, hay phản ánh chính quyết định trước đó của mình?
+
+<Quiz client:visible id="w11-q-driver" questions={[
+  { q: "Doanh thu giảm 5% dù số lượng bán tăng 8%. Thành phần nào trong PVM có khả năng âm mạnh nhất?", options: ["Volume", "Mix hoặc price", "Không thể xảy ra"], answer: 1, explain: "Volume dương vì số lượng tăng. Doanh thu vẫn giảm nghĩa là mix (chuyển sang hàng rẻ) hoặc giá đã kéo xuống." },
+  { q: "Chỉ số nào là leading indicator cho doanh thu quý sau của một công ty SaaS?", options: ["Doanh thu quý này", "Số khách dùng thử và tỷ lệ chuyển từ dùng thử sang trả phí trong tháng này", "Lợi nhuận năm ngoái"], answer: 1, explain: "Dùng thử và chuyển đổi xảy ra trước doanh thu, nên báo hiệu sớm." },
+  { q: "Doanh số tháng 12 tăng 30% so với tháng 11. Cách so nào đáng tin hơn để đánh giá chiến dịch tháng 12?", options: ["So với tháng 11", "So với tháng 12 năm trước, hoặc so với nhóm không chạy chiến dịch", "So với trung bình cả năm"], answer: 1, explain: "Tháng 12 vốn cao do mùa vụ. So cùng kỳ hoặc với control mới tách được tác động của chiến dịch." },
+]} />
+
+## Luyện tập tình huống
+
+<Situation client:visible id="w11-th-dec" title="Tình huống: chiến dịch tháng 12 thành công?" context="Team marketing chạy chiến dịch quảng cáo trong tháng 12. Doanh số tháng 12 tăng 30% so với tháng 11. Báo cáo kết luận: 'Chiến dịch thành công, đề xuất tăng ngân sách gấp đôi năm sau.' Dữ liệu 3 năm trước cho thấy tháng 12 thường cao hơn tháng 11 khoảng 25%." question="Kết luận này có vấn đề gì? Nên đánh giá chiến dịch thế nào?">
+
+**Đáp án mẫu**
+
+- **Bẫy so sánh trước/sau kết hợp seasonality:** tháng 12 vốn cao hơn tháng 11 khoảng 25% do mùa vụ. Phần tăng "thêm" có thể chỉ khoảng 30% so với 25%, tức vài điểm phần trăm, chưa chắc do chiến dịch.
+- **Nên:** so tháng 12 năm nay với **tháng 12 năm trước** (cùng kỳ), loại trừ trend chung; tốt hơn nữa là có **nhóm control** (vùng hoặc nhóm khách không thấy quảng cáo, chia ngẫu nhiên) để đo mức tăng do chiến dịch.
+- Trước khi tăng ngân sách gấp đôi, cần ước tính lợi nhuận tăng thêm so với chi phí quảng cáo.
+
+</Situation>
+
+<Situation client:visible id="w11-th-pvm" title="Tình huống: doanh thu giảm, đội bán hàng có kém đi?" context="Doanh thu năm 2024 giảm 10% so với 2023. Giám đốc muốn thay trưởng nhóm bán hàng. Bạn có dữ liệu số lượng và doanh thu theo Category của 2 năm (như ô PVM ở trên)." question="Bạn sẽ phân tích thế nào trước khi kết luận? Kết quả PVM ở trên gợi ý điều gì?">
+
+**Đáp án mẫu**
+
+- Phân rã trước: **driver tree** (số đơn × dòng/đơn × giá trị/dòng) và **PVM** theo Category.
+- Kết quả: số đơn không đổi, tổng số lượng bán còn tăng (volume dương). Doanh thu giảm chủ yếu do **mix**: khách mua nhiều Office Supplies (rẻ) hơn và ít Technology (đắt) hơn.
+- Câu hỏi tiếp: vì sao Technology giảm? (giá đối thủ, hết hàng, thị trường chung, thay đổi chính sách chiết khấu…). Đây mới là việc tìm nguyên nhân; phân rã chỉ chỉ ra **ở đâu**.
+- Kết luận "đội bán hàng kém" là vội vàng khi chưa xem các yếu tố này.
+
+</Situation>
+
+## Tóm tắt tuần và chuẩn bị Checkpoint 4
+
+- Driver tree: tách chỉ tiêu thành tích các thành phần; tổng các đóng góp = tổng chênh lệch.
+- PVM: volume (bán nhiều hay ít), mix (cơ cấu), price (giá). Doanh thu giảm chưa chắc vì bán kém.
+- Leading báo sớm, lagging đo kết quả. Cần cả hai.
+- Có mùa vụ thì so cùng kỳ, không so tháng liền trước.
+- Feedback loop: dữ liệu có thể phản ánh chính quyết định trước đó.
+
+<div class="callout">**Checkpoint 4** (cuối tuần này): phần A giải thích closed-book ý nghĩa thống kê và thực tế, tương quan và nhân quả, regression to the mean, randomization, các loại bias [7], đọc CI và p-value [6]; phần B: Titanic EDA, driver tree, PVM, trend và seasonality, đọc A/B test, đã có ở các ô code tuần 9–11; phần C 5 tình huống (cửa hàng tệ nhất, khảo sát 95%, chiến dịch tháng 12, cà phê, A/B test 0,01 pp). Đạt khi đủ ý chính, 100% assert pass, và đúng ≥ 4/5 tình huống. Xem Sổ tay Phase 4.</div>

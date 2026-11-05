@@ -1,6 +1,6 @@
 // Một worker Python dùng chung cho cả trang (giống một notebook: biến của ô trước dùng được ở ô sau).
 export const PYODIDE_URL = 'https://cdn.jsdelivr.net/pyodide/v0.27.7/full/';
-const DATASETS = ['superstore_sample.csv'];
+const DATASETS = ['superstore_sample.csv', 'titanic.csv'];
 
 export type TestSpec = { code: string; message: string; hidden?: boolean };
 export type RunResult = {

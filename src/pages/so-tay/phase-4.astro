@@ -1,0 +1,49 @@
+---
+import Base from '../../layouts/Base.astro';
+---
+<Base title="Sổ tay Phase 4">
+  <p class="muted no-print">Sổ tay tóm tắt để ôn nhanh hoặc in ra. <button onclick="window.print()">In / Lưu PDF</button></p>
+  <h1>Sổ tay Phase 4: Suy luận và chẩn đoán</h1>
+
+  <h2>Tuần 9. Tương quan, nhân quả và bias</h2>
+  <table>
+    <tr><th>Khái niệm</th><th>Nhớ một câu</th></tr>
+    <tr><td>Tương quan và nhân quả</td><td>Có thể do nhân quả, đảo chiều, confounder hoặc tình cờ. Ghi rõ "tương quan" hay "nhân quả".</td></tr>
+    <tr><td>Confounder</td><td>Biến thứ ba gây ra cả hai. Ví dụ: mức trung thành → vừa cài app vừa mua nhiều.</td></tr>
+    <tr><td>Bẫy trước/sau</td><td>Không có nhóm so sánh thì không tách được tác động khỏi mùa vụ và các thay đổi khác.</td></tr>
+    <tr><td>Bias</td><td>Selection, survivorship, confirmation, thiếu không ngẫu nhiên. Mẫu lớn không sửa được bias.</td></tr>
+    <tr><td>Regression to the mean</td><td>Đối tượng cực đoan tự quay về trung bình → cần nhóm control.</td></tr>
+    <tr><td>Randomization</td><td>Chia ngẫu nhiên làm confounder (kể cả không đo được) phân bổ đều giữa 2 nhóm.</td></tr>
+  </table>
+
+  <h2>Tuần 10. Kiểm định và A/B test</h2>
+  <table>
+    <tr><th>Khái niệm</th><th>Nhớ một câu</th></tr>
+    <tr><td>CI 95% của tỷ lệ</td><td>p ± 1,96 × √(p(1 − p)/n). Mẫu gấp 4 thì khoảng hẹp một nửa.</td></tr>
+    <tr><td>p-value</td><td>Nếu H0 đúng, xác suất thấy chênh lệch lớn như vậy. Không phải xác suất H0 đúng.</td></tr>
+    <tr><td>Thống kê và thực tế</td><td>p nhỏ chỉ nói khó là ngẫu nhiên, không nói hiệu ứng lớn hay đáng làm.</td></tr>
+    <tr><td>p lớn</td><td>Chưa đủ bằng chứng, không phải "không có hiệu ứng".</td></tr>
+    <tr><td>Test nào</td><td>Chi-square cho tỷ lệ; t-test cho trung bình.</td></tr>
+    <tr><td>Sample size</td><td>Mỗi nhóm khoảng 16 × p(1 − p) / δ². 10% → 12% cần 3.600 mỗi nhóm.</td></tr>
+  </table>
+
+  <h2>Tuần 11. Phân rã driver</h2>
+  <table>
+    <tr><th>Khái niệm</th><th>Nhớ một câu</th></tr>
+    <tr><td>Driver tree</td><td>Doanh thu = số đơn × dòng/đơn × giá trị/dòng. Thay lần lượt; tổng đóng góp = tổng chênh lệch.</td></tr>
+    <tr><td>PVM</td><td>Volume: bán nhiều hay ít · Mix: cơ cấu đắt/rẻ · Price: giá từng nhóm.</td></tr>
+    <tr><td>Leading / lagging</td><td>Leading báo sớm để kịp hành động; lagging đo kết quả.</td></tr>
+    <tr><td>Trend / seasonality</td><td>Có mùa vụ thì so cùng kỳ năm trước, không so tháng liền trước.</td></tr>
+    <tr><td>Feedback loop</td><td>Dữ liệu có thể phản ánh chính quyết định trước đó của mình.</td></tr>
+  </table>
+
+  <h2>Checkpoint 4: ý chính phần A</h2>
+  <ul>
+    <li><strong>Ý nghĩa thống kê và thực tế:</strong> p nhỏ chỉ cho biết hiệu ứng khó là ngẫu nhiên, không cho biết hiệu ứng lớn hay đáng làm.</li>
+    <li><strong>Tương quan và nhân quả:</strong> confounder; 1 ví dụ tự nghĩ.</li>
+    <li><strong>Regression to the mean:</strong> giá trị cực đoan tự quay về mức trung bình → cần nhóm control để kết luận.</li>
+    <li><strong>Randomization:</strong> chia ngẫu nhiên làm các confounder phân bổ đều giữa 2 nhóm.</li>
+    <li><strong>Các loại bias:</strong> selection, survivorship, confirmation, thiếu dữ liệu không ngẫu nhiên; mỗi loại 1 ví dụ.</li>
+    <li><strong>CI và p-value:</strong> 1–2 câu, không mắc ngộ nhận "p là xác suất H0 đúng".</li>
+  </ul>
+</Base>
