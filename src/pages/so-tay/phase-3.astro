@@ -1,0 +1,46 @@
+---
+import Base from '../../layouts/Base.astro';
+---
+<Base title="Sổ tay Phase 3">
+  <p class="muted no-print">Sổ tay tóm tắt để ôn nhanh hoặc in ra. <button onclick="window.print()">In / Lưu PDF</button></p>
+  <h1>Sổ tay Phase 3: Xác suất</h1>
+
+  <h2>Tuần 7. Phân phối và expected value</h2>
+  <table>
+    <tr><th>Khái niệm</th><th>Nhớ một câu</th></tr>
+    <tr><td>Long tail</td><td>Phần lớn giá trị nhỏ, ít giá trị rất lớn → mean lớn hơn median. Luôn nhìn phân phối trước khi dùng trung bình.</td></tr>
+    <tr><td>Normal</td><td>Hình chuông, đối xứng. ±1 sd ≈ 68%, ±2 sd ≈ 95%, ±3 sd ≈ 99,7%. Không áp cho doanh thu.</td></tr>
+    <tr><td>Expected value</td><td>Trung bình có trọng số theo xác suất. Quyết định còn cần xét rủi ro và độ tin cậy của xác suất.</td></tr>
+    <tr><td>Binomial</td><td>Số lần thành công trong n lần thử độc lập. Đọc xác suất như "bao lâu mới gặp một lần".</td></tr>
+  </table>
+
+  <h2>Tuần 8. Xác suất có điều kiện và base rate</h2>
+  <table>
+    <tr><th>Khái niệm</th><th>Nhớ một câu</th></tr>
+    <tr><td>P(A|B) và P(B|A)</td><td>Khác mẫu số nên khác nhau. Luôn hỏi: đang nhìn trong nhóm nào?</td></tr>
+    <tr><td>Base rate</td><td>Kết quả test phải đặt trên tỷ lệ nền. Lập bảng 1.000 người, đọc trong cột dương tính.</td></tr>
+    <tr><td>crosstab</td><td>normalize="index": mỗi hàng 100%; normalize="columns": mỗi cột 100%.</td></tr>
+    <tr><td>LLN</td><td>Lặp càng nhiều càng gần xác suất thật; mẫu nhỏ dao động mạnh.</td></tr>
+    <tr><td>Gambler's fallacy</td><td>Kết quả độc lập không "cân bằng lại". 5 lần ngửa xong, lần sau vẫn 50%.</td></tr>
+    <tr><td>CLT</td><td>Trung bình mẫu gần normal, độ phân tán = sd / √n. Nền tảng cho Phase 4.</td></tr>
+  </table>
+
+  <h2>Bảng tần suất mẫu: bệnh 1%, độ nhạy 90%, dương tính giả 9%</h2>
+  <table>
+    <tr><th></th><th>Dương tính</th><th>Âm tính</th><th>Tổng</th></tr>
+    <tr><td>Bệnh</td><td>9</td><td>1</td><td>10</td></tr>
+    <tr><td>Khoẻ</td><td>89</td><td>901</td><td>990</td></tr>
+    <tr><td>Tổng</td><td>98</td><td>902</td><td>1.000</td></tr>
+  </table>
+  <p>P(bệnh | dương tính) = 9 / 98 ≈ 9%.</p>
+
+  <h2>Checkpoint 3: ý chính phần A</h2>
+  <ul>
+    <li><strong>Xác suất có điều kiện:</strong> P(A|B) ≠ P(B|A), kèm 1 ví dụ hai giá trị khác nhau.</li>
+    <li><strong>Base rate:</strong> kết quả test phải đặt trên tỷ lệ nền; lập bảng tần suất trên 1.000 người.</li>
+    <li><strong>Long tail:</strong> phần lớn giá trị nhỏ, ít giá trị rất lớn → mean lớn hơn median → nhìn phân phối trước.</li>
+    <li><strong>Normal:</strong> hình chuông, đối xứng; quy tắc 68–95–99,7.</li>
+    <li><strong>Expected value:</strong> trung bình có trọng số theo xác suất, dùng để so sánh các phương án.</li>
+    <li><strong>Binomial, LLN, CLT:</strong> mỗi khái niệm 1 câu.</li>
+  </ul>
+</Base>
