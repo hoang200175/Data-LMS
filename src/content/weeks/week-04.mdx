@@ -13,12 +13,16 @@ media:
     title: Video tóm tắt Tuần 4
     lang: Tiếng Việt
   - kind: audio
-    title: Podcast Tuần 4
+    title: "Podcast: Cạm bẫy con số trung bình ảo"
+    src: audio/tuan-04.mp3
     lang: Tiếng Việt
+    minutes: 6
+    note: Podcast ngắn về mean và median, phân phối lệch, outlier và chọn chart. Nghe trước hoặc sau khi đọc bài.
 ---
 import PythonCell from '../../components/PythonCell.tsx';
 import Quiz from '../../components/Quiz.tsx';
 import Situation from '../../components/Situation.tsx';
+import Flashcards from '../../components/Flashcards.astro';
 
 Phase 2 là **phân tích mô tả** (descriptive): trả lời câu hỏi "chuyện gì đã xảy ra?". Nghe đơn giản, nhưng phần lớn kết luận sai trong công ty bắt nguồn từ một con số mô tả chọn sai. Tuần này bắt đầu với việc tóm tắt **một** biến.
 
@@ -193,6 +197,12 @@ tests={[
   { code: "assert thong_ke['mean_y'].max() - thong_ke['mean_y'].min() < 0.01", message: "Mean y của 4 bộ gần như bằng nhau" },
   { code: "assert thong_ke['corr'].max() - thong_ke['corr'].min() < 0.01", message: "Hệ số tương quan của 4 bộ gần như bằng nhau" },
 ]} />
+
+## Ôn bằng thẻ ghi nhớ
+
+15 thẻ ôn lại các khái niệm của tuần. Thẻ "chưa nhớ" sẽ quay lại cuối lượt.
+
+<Flashcards deck="tuan-04" />
 
 ## Tóm tắt tuần
 
