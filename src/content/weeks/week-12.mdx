@@ -1,0 +1,164 @@
+---
+week: 12
+title: Nguyên lý machine learning
+minutes: 240
+goals:
+  - "Giải thích vì sao phải chia train/test, và chia đúng cách."
+  - "Nhận ra overfitting qua chênh lệch điểm train và test."
+  - "Luôn so model với một baseline ngây thơ."
+  - "Phát hiện data leakage: feature chứa thông tin chưa thể có tại thời điểm dự báo."
+  - "Phân biệt supervised và unsupervised learning."
+media:
+  - kind: video
+    title: Video tóm tắt Tuần 12
+    lang: Tiếng Việt
+  - kind: audio
+    title: Podcast Tuần 12
+    lang: Tiếng Việt
+---
+import PythonCell from '../../components/PythonCell.tsx';
+import Quiz from '../../components/Quiz.tsx';
+import Situation from '../../components/Situation.tsx';
+
+Phase 5 là **dự báo**. Mục tiêu không phải để bạn tự xây model phức tạp, mà để bạn **đánh giá được** một model người khác đưa ra: nó có thật sự tốt không, có đáng tin không, có bị "ăn gian" không. Code model ở phase này phần lớn là code mẫu; phần quan trọng là cách đọc kết quả.
+
+## Bài 12.1. Supervised và unsupervised <span class="badge">[5]</span>
+
+- **Supervised learning** (học có giám sát): dữ liệu có sẵn **đáp án** (nhãn). Model học từ ví dụ có đáp án để đoán đáp án cho ví dụ mới. Ví dụ: đoán khách có rời bỏ không (phân loại), đoán doanh số tháng sau (hồi quy).
+- **Unsupervised learning** (học không giám sát): **không có đáp án**; model tự tìm cấu trúc. Ví dụ: chia khách hàng thành các nhóm có hành vi giống nhau (clustering).
+
+## Bài 12.2. Train/test và baseline <span class="badge lvl7">[7]</span>
+
+Model nào cũng đoán tốt trên **dữ liệu nó đã thấy**. Câu hỏi thật là: nó đoán tốt trên **dữ liệu mới** không? Vì vậy ta chia dữ liệu:
+
+- **Train:** phần để model học (thường 70–80%).
+- **Test:** phần giấu đi, chỉ dùng **một lần** ở cuối để chấm điểm. Điểm test là ước lượng cho hiệu quả thật.
+
+**Baseline** là cách đoán ngây thơ nhất: luôn đoán lớp phổ biến nhất, luôn đoán giá trị trung bình, luôn đoán "tháng sau bằng tháng này". Model chỉ có giá trị khi **thắng được baseline**, và thắng đủ nhiều để đáng chi phí xây dựng và vận hành.
+
+<div class="callout">**Ý chính bắt buộc:** model phải thắng được cách đoán ngây thơ (baseline) trên dữ liệu test thì mới có giá trị. Accuracy 90% nghe cao, nhưng nếu baseline đã đạt 89% thì model gần như vô dụng.</div>
+
+Dữ liệu **Iris** (có sẵn trong scikit-learn): 150 bông hoa thuộc 3 loài, mỗi bông đo 4 chỉ số (dài và rộng của đài hoa, cánh hoa). Bài toán: từ 4 chỉ số, đoán loài.
+
+<PythonCell client:visible id="w12-py-split" title="Iris: train/test, baseline và decision tree" code={`import numpy as np
+from sklearn.datasets import load_iris
+from sklearn.model_selection import train_test_split
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.metrics import accuracy_score
+
+X, y = load_iris(return_X_y=True)
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42, stratify=y)
+
+# Baseline: luôn đoán loài xuất hiện nhiều nhất trong train
+lop_pho_bien = np.bincount(y_train).argmax()
+acc_baseline = ...           # accuracy khi đoán lop_pho_bien cho mọi bông trong test. Gợi ý: (y_test == lop_pho_bien).mean()
+
+model = DecisionTreeClassifier(random_state=0).fit(X_train, y_train)
+acc_model = accuracy_score(y_test, model.predict(X_test))
+
+print(f"Baseline: {acc_baseline:.1%} | Decision tree: {acc_model:.1%}")`}
+tests={[
+  { code: "assert abs(acc_baseline - (y_test == lop_pho_bien).mean()) < 1e-9", message: "Tính đúng accuracy baseline (khoảng 33%)" },
+  { code: "assert acc_model >= 0.9, f'Accuracy test {acc_model:.2f}'", message: "Decision tree đạt accuracy test ≥ 90%" },
+  { code: "assert acc_model > acc_baseline + 0.3", message: "Model thắng baseline rõ rệt" },
+]} />
+
+## Bài 12.3. Overfitting <span class="badge lvl7">[7]</span>
+
+**Overfitting** (quá khớp): model **học thuộc** dữ liệu train, kể cả phần nhiễu ngẫu nhiên, nên đoán train rất giỏi nhưng đoán dữ liệu mới kém. Giống học sinh học thuộc đáp án đề cũ: đề cũ được 10 điểm, đề mới thì không.
+
+**Dấu hiệu:** điểm train rất cao, điểm test thấp hơn hẳn. Cách giảm: model đơn giản hơn (ví dụ giới hạn độ sâu của cây), nhiều dữ liệu hơn, ít feature hơn.
+
+<div class="callout">**Ý chính bắt buộc:** dấu hiệu overfitting là điểm train cao, điểm test thấp; model học thuộc noise. Luôn so điểm train với điểm test.</div>
+
+Dữ liệu **Wine Quality** (rượu vang đỏ, 1.599 mẫu): 11 chỉ số hoá học và điểm chất lượng từ chuyên gia (thang 0–10). Bài toán: đoán điểm chất lượng. Đo sai số bằng **MAE** (mean absolute error: trung bình độ lệch tuyệt đối giữa dự đoán và thực tế).
+
+<PythonCell client:visible id="w12-py-overfit" title="Cây không giới hạn và cây độ sâu 3" code={`import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.tree import DecisionTreeRegressor
+from sklearn.metrics import mean_absolute_error
+
+w = pd.read_csv("winequality_red.csv")
+X, y = w.drop(columns="quality"), w["quality"]
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.25, random_state=42)
+
+ket_qua = {}
+for do_sau in [None, 3]:
+    cay = DecisionTreeRegressor(max_depth=do_sau, random_state=0).fit(X_train, y_train)
+    mae_train = mean_absolute_error(y_train, cay.predict(X_train))
+    mae_test = ...           # MAE trên tập test
+    ket_qua[str(do_sau)] = (round(mae_train, 3), round(mae_test, 3))
+
+print("(MAE train, MAE test):", ket_qua)`}
+tests={[
+  { code: "assert ket_qua['None'][0] < 0.05, 'Cây không giới hạn phải gần như thuộc lòng train'", message: "Cây không giới hạn: MAE train gần 0 (học thuộc)" },
+  { code: "assert ket_qua['None'][1] - ket_qua['None'][0] > 0.3", message: "Cây không giới hạn: test kém hơn train rất nhiều → overfitting" },
+  { code: "assert abs(ket_qua['3'][1] - ket_qua['3'][0]) < 0.1", message: "Cây độ sâu 3: train và test gần nhau" },
+]} />
+
+Lưu ý: cây không giới hạn ở đây vẫn có MAE test hơi thấp hơn cây độ sâu 3. Overfitting không có nghĩa model vô dụng, mà nghĩa là **điểm train đánh lừa**: nếu chỉ báo điểm train (MAE ≈ 0), bạn sẽ hứa hẹn một model hoàn hảo, trong khi thực tế sai khoảng 0,5 điểm.
+
+## Bài 12.4. Data leakage <span class="badge">[6]</span>
+
+**Data leakage** (rò rỉ dữ liệu): model dùng một feature chứa thông tin mà **tại thời điểm cần dự báo chưa thể có**. Kết quả test đẹp bất thường, nhưng khi đưa vào dùng thật thì sụp đổ.
+
+Ví dụ: dự đoán khách sẽ huỷ hợp đồng (churn) với feature "ngày huỷ hợp đồng". Chỉ khách **đã huỷ** mới có ngày huỷ, nên model đoán đúng gần 100%. Nhưng lúc cần dự đoán (trước khi khách huỷ), feature này chưa tồn tại.
+
+Dấu hiệu nghi ngờ: kết quả **tốt bất thường**; một feature quá quan trọng; feature được ghi nhận **sau** sự kiện cần dự đoán. Hỏi với mỗi feature: "lúc ra quyết định, mình đã biết giá trị này chưa?"
+
+<PythonCell client:visible id="w12-py-leakage" title="Mô phỏng: feature rò rỉ trong bài churn" code={`import numpy as np
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.metrics import accuracy_score
+
+rng = np.random.default_rng(12)
+n = 3000
+so_thang = rng.integers(1, 60, n)              # số tháng đã dùng dịch vụ
+so_ticket = rng.poisson(2, n)                  # số lần phàn nàn
+gia_goi = rng.normal(300, 60, n)
+logit = -1.2 - 0.03 * so_thang + 0.45 * so_ticket + 0.004 * (gia_goi - 300)
+churn = (rng.random(n) < 1 / (1 + np.exp(-logit))).astype(int)
+ngay_huy = np.where(churn == 1, rng.integers(1, 30, n), 0)   # chỉ có SAU khi khách huỷ
+kh = pd.DataFrame({"so_thang": so_thang, "so_ticket": so_ticket, "gia_goi": gia_goi, "ngay_huy": ngay_huy, "churn": churn})
+
+def cham_diem(cot):
+    a, b, c, d = train_test_split(kh[cot], kh["churn"], test_size=0.3, random_state=0)
+    m = DecisionTreeClassifier(max_depth=4, random_state=0).fit(a, c)
+    return accuracy_score(d, m.predict(b)), 1 - d.mean()
+
+acc_ro_ri, baseline = cham_diem(["so_thang", "so_ticket", "gia_goi", "ngay_huy"])
+acc_sach = ...               # cham_diem với 3 feature, bỏ ngay_huy; lấy phần tử đầu
+
+print(f"Baseline (đoán không ai huỷ): {baseline:.1%}")
+print(f"Có ngay_huy: {acc_ro_ri:.1%} | Bỏ ngay_huy: {acc_sach:.1%}")`}
+tests={[
+  { code: "assert acc_ro_ri > 0.98, 'Có feature rò rỉ thì accuracy gần 100%'", message: "Có feature rò rỉ: accuracy gần 100% (đẹp bất thường)" },
+  { code: "assert abs(acc_sach - cham_diem(['so_thang', 'so_ticket', 'gia_goi'])[0]) < 1e-9", message: "Tính đúng accuracy khi bỏ feature rò rỉ" },
+  { code: "assert acc_sach < 0.85", message: "Bỏ rò rỉ: accuracy thật thấp hơn nhiều, chỉ nhỉnh hơn baseline" },
+]} />
+
+<Quiz client:visible id="w12-q-ml" questions={[
+  { q: "Model đạt accuracy 95% trên train và 70% trên test. Đây là dấu hiệu gì?", options: ["Model rất tốt", "Overfitting: model học thuộc train", "Dữ liệu test bị lỗi"], answer: 1, explain: "Chênh lệch lớn giữa train và test là dấu hiệu điển hình của overfitting." },
+  { q: "Chia khách hàng thành các nhóm hành vi mà không có nhãn sẵn là loại bài toán gì?", options: ["Supervised", "Unsupervised", "Hồi quy"], answer: 1, explain: "Không có đáp án sẵn, model tự tìm cấu trúc: unsupervised (clustering)." },
+  { q: "Model dự đoán khách có trả nợ đúng hạn dùng feature 'số ngày quá hạn của khoản vay này'. Vấn đề là gì?", options: ["Không có vấn đề", "Data leakage: lúc cho vay chưa biết số ngày quá hạn", "Overfitting"], answer: 1, explain: "Feature chỉ có sau sự kiện cần dự đoán là rò rỉ dữ liệu." },
+]} />
+
+## Luyện tập tình huống
+
+<Situation client:visible id="w12-th-churn" title="Tình huống: model churn đạt 98%" context="Một vendor trình bày model dự đoán khách huỷ hợp đồng, đạt accuracy 98% trên dữ liệu test. Khi hỏi, bạn biết model dùng 15 feature, trong đó feature quan trọng nhất là 'ngày huỷ hợp đồng'. Tỷ lệ khách huỷ thực tế khoảng 25%." question="Bạn có đồng ý mua model này không? Vì sao, và bạn yêu cầu vendor làm gì?">
+
+**Đáp án mẫu**
+
+- **Data leakage:** tại thời điểm cần dự báo (trước khi khách huỷ), chưa thể biết ngày huỷ hợp đồng. Accuracy 98% là ảo.
+- So với **baseline** "luôn đoán không huỷ" đã đạt 75%, cần biết model sạch thắng baseline bao nhiêu.
+- **Yêu cầu:** bỏ mọi feature ghi nhận sau thời điểm dự báo; chia train/test **theo thời gian** (train bằng quá khứ, test bằng giai đoạn sau); báo precision/recall cho lớp "huỷ", không chỉ accuracy.
+
+</Situation>
+
+## Tóm tắt tuần
+
+- Chấm điểm model trên test, không phải train. Test chỉ dùng một lần.
+- Luôn có baseline. Model phải thắng baseline đủ nhiều.
+- Train cao, test thấp → overfitting. Dùng model đơn giản hơn.
+- Kết quả đẹp bất thường → nghi leakage. Hỏi: lúc dự báo đã biết feature này chưa?
