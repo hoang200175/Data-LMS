@@ -3,6 +3,7 @@ import { EditorView, basicSetup } from 'codemirror';
 import { python } from '@codemirror/lang-python';
 import { runPython, startPython, stopPython, type RunResult, type TestSpec } from '../lib/python';
 import { loadProgress, update } from '../lib/progress';
+import AiFeedback from './AiFeedback';
 
 type Props = {
   id: string; // khoá duy nhất, dùng để lưu code và trạng thái đạt
@@ -112,6 +113,16 @@ export default function PythonCell({ id, code, tests = [], title }: Props) {
           )}
         </div>
       )}
+      <AiFeedback
+        id={id}
+        build={() => ({
+          kind: 'code',
+          title: title ?? id,
+          code: view.current!.state.doc.toString(),
+          output: result ? [result.stdout, result.error].filter(Boolean).join('\n') : '',
+          tests: checked && result ? result.tests.map((t) => `${t.pass ? 'ĐẠT' : 'CHƯA ĐẠT'}: ${t.message}${!t.pass && t.detail ? ` (${t.detail})` : ''}`).join('\n') : '',
+        })}
+      />
     </div>
   );
 }

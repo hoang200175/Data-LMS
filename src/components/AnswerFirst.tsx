@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { loadProgress, update } from '../lib/progress';
+import AiFeedback from './AiFeedback';
 
 // "Ghi log trước, mở đáp án sau": đáp án chỉ hiện khi câu trả lời đã nộp, và câu trả lời đã nộp không sửa được.
 // lockAnswer: không mở đáp án (Tuần 0, đáp án mở ở Tuần 16).
@@ -66,6 +67,7 @@ export default function AnswerFirst({ id, question, answer, lockAnswer, compareW
               <button key={g} className={grade === g ? 'primary' : ''} onClick={() => selfGrade(g)}>{g}</button>
             ))}
           </div>
+          <AiFeedback id={id} build={() => ({ kind: 'answer', question, answer: saved.text, modelAnswer: answer })} />
           </>
           )}
         </>

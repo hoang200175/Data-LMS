@@ -140,3 +140,8 @@ pre.astro-code { padding: 12px 14px; border-radius: 8px; overflow-x: auto; font-
 .deck-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 10px; }
 .deck-left { font-size: 0.85rem; margin: 8px 0 0; }
 .media video.video-file { width: 100%; border-radius: 8px; background: #000; }
+
+/* AI nhận xét */
+.ai-feedback { margin-top: .75rem; }
+.ai-feedback .ai-text { margin-top: .5rem; padding: .75rem 1rem; border-left: 3px solid var(--accent); background: var(--accent-soft); border-radius: 6px; }
+.ai-feedback .ai-text p { white-space: pre-wrap; margin: .4rem 0 0; }

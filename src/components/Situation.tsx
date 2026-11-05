@@ -1,5 +1,6 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { loadProgress, update } from '../lib/progress';
+import AiFeedback from './AiFeedback';
 
 // Tình huống: đọc bối cảnh, ghi câu trả lời, nộp (bị khoá), rồi mới mở đáp án mẫu (children) và tự chấm.
 type Props = { id: string; title: string; context: string; question: string; children?: ReactNode };
@@ -8,6 +9,7 @@ export default function Situation({ id, title, context, question, children }: Pr
   const [draft, setDraft] = useState('');
   const [saved, setSaved] = useState<{ text: string; at: string } | null>(null);
   const [grade, setGrade] = useState<string | null>(null);
+  const keyRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const p = loadProgress();
@@ -44,13 +46,14 @@ export default function Situation({ id, title, context, question, children }: Pr
       ) : (
         <>
           <div className="mine"><strong>Câu trả lời của bạn</strong> ({new Date(saved.at).toLocaleString('vi-VN')}):<br />{saved.text}</div>
-          <div className="key">{children}</div>
+          <div className="key" ref={keyRef}>{children}</div>
           <div className="grade">
             Tự chấm:{' '}
             {['Đúng', 'Một phần', 'Sai'].map((g) => (
               <button key={g} className={grade === g ? 'primary' : ''} onClick={() => selfGrade(g)}>{g}</button>
             ))}
           </div>
+          <AiFeedback id={id} build={() => ({ kind: 'answer', question: `${context}\n${question}`, answer: saved.text, modelAnswer: keyRef.current?.innerText ?? '' })} />
         </>
       )}
     </div>
