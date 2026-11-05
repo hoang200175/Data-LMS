@@ -1,0 +1,173 @@
+---
+week: 15
+title: Từ phân tích tới đề xuất
+minutes: 270
+goals:
+  - "Đi đủ vòng câu hỏi → giả thuyết → phân tích → so-what."
+  - "Xây kịch bản what-if có số, nêu rõ giả định của từng kịch bản."
+  - "Kiểm tra độ nhạy: giả định nào làm thay đổi kết luận."
+  - "Kể chuyện bằng chart: mỗi chart một thông điệp, title chính là kết luận."
+media:
+  - kind: video
+    title: Video tóm tắt Tuần 15
+    lang: Tiếng Việt
+  - kind: audio
+    title: Podcast Tuần 15
+    lang: Tiếng Việt
+---
+import PythonCell from '../../components/PythonCell.tsx';
+import Quiz from '../../components/Quiz.tsx';
+import Situation from '../../components/Situation.tsx';
+
+Phase 6 là **đề xuất**: biến phân tích thành quyết định. Một phân tích đúng mà không ai hành động theo là phân tích chưa xong. Tuần này học cách đặt câu hỏi đúng ngay từ đầu, dựng kịch bản có số, và trình bày sao cho người nghe biết phải làm gì.
+
+## Bài 15.1. Câu hỏi → giả thuyết → phân tích → so-what <span class="badge lvl7">[7]</span>
+
+1. **Câu hỏi business:** cụ thể, gắn với một quyết định. "Có nên giới hạn mức chiết khấu tối đa không?" tốt hơn "Phân tích chiết khấu".
+2. **Giả thuyết, viết trước khi phân tích:** "Các đơn chiết khấu sâu đang lỗ, và phần lớn khách vẫn mua nếu chiết khấu thấp hơn." Viết trước để tránh confirmation bias: bạn biết mình đang kiểm tra điều gì, và chấp nhận kết quả bác bỏ.
+3. **Phân tích:** dùng đúng công cụ của các phase trước: mô tả (phase 2), chẩn đoán (phase 4), dự báo (phase 5).
+4. **So-what:** "vậy thì sao?". Kết luận này nghĩa là ai cần làm gì, khi nào, tác động bao nhiêu.
+
+<div class="callout">**Ý chính bắt buộc:** bắt đầu từ câu hỏi gắn với quyết định, viết giả thuyết trước, và kết thúc bằng so-what: ai làm gì, tác động bao nhiêu. Bài trình bày mở đầu bằng so-what, không bằng quy trình.</div>
+
+**So-what 3 dòng** đặt ở đầu mọi bài trình bày:
+
+> 1. **Kết luận:** chiết khấu từ 30% trở lên đang làm lỗ khoảng 47 nghìn USD trong 3 năm.
+> 2. **Đề xuất:** giới hạn chiết khấu tối đa ở 20%.
+> 3. **Tác động:** lợi nhuận tăng khoảng 13–19% tuỳ số khách giữ lại; doanh thu giảm tối đa 19%.
+
+## Bài 15.2. What-if và kịch bản <span class="badge">[6]</span>
+
+Quyết định nào cũng dựa trên giả định về tương lai. **Phân tích kịch bản** đặt các giả định đó thành vài phiên bản có số:
+
+- **Kịch bản gốc:** giữ nguyên như hiện tại.
+- **Kịch bản xấu:** giả định bất lợi (mất toàn bộ khách đang hưởng chiết khấu sâu).
+- **Kịch bản trung bình / tốt:** giả định hợp lý hơn (giữ được một phần khách).
+
+Mỗi kịch bản phải ghi rõ **giả định**, để người đọc tự đánh giá và tự thay số của mình.
+
+<PythonCell client:visible id="w15-py-whatif" title="What-if: giới hạn chiết khấu tối đa 20%" code={`import pandas as pd
+df = pd.read_csv("superstore_sample.csv").drop_duplicates()
+
+sau = df[df["Discount"] >= 0.3]       # các dòng chiết khấu từ 30% trở lên
+nong = df[df["Discount"] < 0.3]
+margin_20 = df.loc[df["Discount"] == 0.2, "Profit"].sum() / df.loc[df["Discount"] == 0.2, "Sales"].sum()
+
+# Kịch bản gốc: giữ nguyên
+loi_nhuan_goc = df["Profit"].sum()
+
+# Kịch bản xấu: bỏ chiết khấu sâu, MẤT toàn bộ các dòng đó
+loi_nhuan_xau = ...          # chỉ còn lợi nhuận của các dòng nong
+
+# Kịch bản trung bình: giữ lại 60% doanh thu các dòng sâu, bán ở chiết khấu 20% (margin như nhóm 20%)
+giu_lai = 0.6
+loi_nhuan_tb = nong["Profit"].sum() + giu_lai * sau["Sales"].sum() * margin_20
+
+bang = pd.DataFrame({
+    "Lợi nhuận": [loi_nhuan_goc, loi_nhuan_xau, loi_nhuan_tb],
+    "Doanh thu": [df["Sales"].sum(), nong["Sales"].sum(), nong["Sales"].sum() + giu_lai * sau["Sales"].sum()],
+}, index=["Gốc", "Xấu: mất hết", "Trung bình: giữ 60%"])
+bang["Lợi nhuận so với gốc"] = (bang["Lợi nhuận"] / loi_nhuan_goc - 1).map("{:+.1%}".format)
+bang.round(0)`}
+tests={[
+  { code: "assert abs(loi_nhuan_xau - nong['Profit'].sum()) < 1e-6, 'loi_nhuan_xau = nong[\"Profit\"].sum()'", message: "Tính đúng kịch bản xấu" },
+  { code: "assert loi_nhuan_xau > loi_nhuan_goc", message: "Ngay cả kịch bản xấu, lợi nhuận vẫn cao hơn gốc (các dòng chiết khấu sâu đang lỗ)" },
+  { code: "assert loi_nhuan_tb > loi_nhuan_xau", message: "Kịch bản giữ lại một phần khách tốt hơn kịch bản xấu" },
+]} />
+
+## Bài 15.3. Độ nhạy: giả định nào quyết định kết luận? <span class="badge">[6]</span>
+
+Kịch bản trung bình phụ thuộc giả định "giữ lại 60%". Nếu sai thì sao? **Phân tích độ nhạy** thay đổi từng giả định trong một khoảng hợp lý, xem kết luận có đổi không. Nếu kết luận đứng vững với mọi giá trị hợp lý, đề xuất **chắc chắn**. Nếu đổi chiều, phải nói rõ: "đề xuất này đúng nếu giữ được ít nhất X% khách".
+
+<PythonCell client:visible id="w15-py-sensitivity" title="Thay đổi tỷ lệ giữ lại từ 0% đến 100%" code={`import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+df = pd.read_csv("superstore_sample.csv").drop_duplicates()
+
+sau = df[df["Discount"] >= 0.3]
+nong = df[df["Discount"] < 0.3]
+margin_20 = df.loc[df["Discount"] == 0.2, "Profit"].sum() / df.loc[df["Discount"] == 0.2, "Sales"].sum()
+loi_nhuan_goc = df["Profit"].sum()
+
+ty_le = np.linspace(0, 1, 11)
+loi_nhuan = ...              # mảng lợi nhuận theo từng tỷ lệ giữ lại: nong["Profit"].sum() + ty_le * sau["Sales"].sum() * margin_20
+
+fig, ax = plt.subplots(figsize=(7, 3.4))
+ax.plot(ty_le * 100, loi_nhuan / 1000, marker="o")
+ax.axhline(loi_nhuan_goc / 1000, color="grey", linestyle="--", label="Hiện tại")
+ax.set_xlabel("% doanh thu chiết khấu sâu giữ lại được"); ax.set_ylabel("Lợi nhuận (nghìn)")
+ax.set_title("Giới hạn chiết khấu 20% luôn tốt hơn hiện tại, dù mất bao nhiêu khách"); ax.legend()`}
+tests={[
+  { code: "assert len(loi_nhuan) == 11 and abs(loi_nhuan[6] - (nong['Profit'].sum() + 0.6 * sau['Sales'].sum() * margin_20)) < 1e-6", message: "Tính đúng lợi nhuận theo từng tỷ lệ" },
+  { code: "assert (np.asarray(loi_nhuan) > loi_nhuan_goc).all()", message: "Kết luận đứng vững với mọi tỷ lệ giữ lại" },
+]} />
+
+Lưu ý giới hạn: mô hình này giả định khách bỏ đi không mua sản phẩm khác, và margin ở chiết khấu 20% giữ nguyên. Ghi các giới hạn này vào phần phụ lục của bài trình bày.
+
+## Bài 15.4. Storytelling với chart <span class="badge">[6]</span>
+
+- **Mỗi chart một thông điệp.** Muốn nói hai điều thì vẽ hai chart.
+- **Title là kết luận**, không phải mô tả: "Chiết khấu từ 30% trở lên làm lỗ" thay vì "Lợi nhuận theo mức chiết khấu".
+- **Làm nổi bật** phần cần chú ý (màu khác cho cột lỗ), làm mờ phần còn lại.
+- **Bỏ thứ thừa:** đường lưới đậm, 3D, chú thích không cần thiết.
+- Thứ tự trình bày: **so-what → bằng chứng → giới hạn → đề xuất và bước tiếp theo**.
+
+<PythonCell client:visible id="w15-py-story" title="Chart có title là kết luận" code={`import pandas as pd
+import matplotlib.pyplot as plt
+df = pd.read_csv("superstore_sample.csv").drop_duplicates()
+
+theo_ck = df.groupby("Discount")["Profit"].sum() / 1000
+mau = ["#c0392b" if v < 0 else "#9aa5b1" for v in theo_ck]   # đỏ cho cột lỗ, xám cho phần còn lại
+
+fig, ax = plt.subplots(figsize=(7, 3.4))
+ax.bar([f"{int(d * 100)}%" for d in theo_ck.index], theo_ck.values, color=mau)
+ax.axhline(0, color="black", linewidth=0.8)
+ax.set_ylabel("Lợi nhuận 3 năm (nghìn)")
+for s in ["top", "right"]:
+    ax.spines[s].set_visible(False)
+
+tieu_de = ...                # viết title là KẾT LUẬN, ví dụ "Chiết khấu từ 30% trở lên làm lỗ"
+ax.set_title(tieu_de, loc="left", fontweight="bold")`}
+tests={[
+  { code: "assert isinstance(tieu_de, str) and len(tieu_de) >= 15, 'Hãy viết một title là câu kết luận'", message: "Có title dạng câu kết luận" },
+  { code: "assert (theo_ck < 0).sum() == 2", message: "Hai mức chiết khấu (30%, 50%) đang lỗ" },
+]} />
+
+<Quiz client:visible id="w15-q-story" questions={[
+  { q: "Title nào tốt nhất cho một chart?", options: ["Doanh thu theo tháng 2025", "Doanh thu giảm 3 tháng liên tiếp từ tháng 9", "Biểu đồ 1"], answer: 1, explain: "Title là kết luận giúp người xem biết ngay thông điệp." },
+  { q: "Vì sao viết giả thuyết trước khi phân tích?", options: ["Để phân tích nhanh hơn", "Để tránh confirmation bias: biết mình đang kiểm tra gì và chấp nhận kết quả bác bỏ", "Vì sếp yêu cầu"], answer: 1, explain: "Viết trước làm phân tích trung thực hơn, không tìm số để hợp lý hoá điều đã tin." },
+  { q: "Kịch bản what-if cần có gì để người đọc tin?", options: ["Nhiều chart", "Giả định ghi rõ, có số, và phân tích độ nhạy cho giả định chính", "Chỉ cần kịch bản tốt nhất"], answer: 1, explain: "Giả định minh bạch cho phép người đọc tự đánh giá và tự thay số." },
+]} />
+
+## Luyện tập tình huống
+
+<Situation client:visible id="w15-th-sowhat" title="Tình huống: viết so-what 3 dòng" context="Bạn vừa phân tích xong: tỷ lệ khách quay lại của nhóm khách mua lần đầu qua kênh quảng cáo mạng xã hội là 18%, so với 41% của nhóm đến qua giới thiệu từ khách cũ. Chi phí có một khách qua quảng cáo là 12 USD, qua chương trình giới thiệu là 8 USD. Ngân sách marketing quý sau: 100.000 USD, hiện chia 80% quảng cáo, 20% giới thiệu." question="Viết so-what 3 dòng (kết luận, đề xuất, tác động) để mở đầu bài trình bày cho giám đốc marketing.">
+
+**Đáp án mẫu**
+
+1. **Kết luận:** khách đến từ giới thiệu vừa rẻ hơn (8 so với 12 USD) vừa quay lại nhiều gấp hơn 2 lần (41% so với 18%).
+2. **Đề xuất:** chuyển dần ngân sách sang chương trình giới thiệu, thử nghiệm 50/50 trong quý sau, có nhóm control để đo.
+3. **Tác động ước tính:** với cùng 100.000 USD, số khách quay lại tăng từ khoảng 2.200 lên 3.300 (80/20: 6.667 × 18% + 2.500 × 41% ≈ 2.225; 50/50: 4.167 × 18% + 6.250 × 41% ≈ 3.313), cần kiểm chứng vì chương trình giới thiệu có thể không mở rộng được tuyến tính.
+
+**Lỗi hay gặp:** mở đầu bằng "Em đã phân tích dữ liệu 6 tháng…"; đề xuất không có số; bỏ qua giới hạn (kênh giới thiệu có thể bão hoà).
+
+</Situation>
+
+<Situation client:visible id="w15-th-chart" title="Tình huống: góp ý một slide" context="Đồng nghiệp gửi slide có 1 chart: title 'Doanh thu và lợi nhuận theo vùng và theo quý 2024–2025, các kênh', vẽ dạng cột 3D chồng nhau, 4 vùng × 8 quý × 3 kênh, kèm bảng số 96 ô bên dưới. Slide này dùng để đề xuất đóng kênh bán qua điện thoại ở vùng South." question="Bạn góp ý gì để slide thuyết phục hơn?">
+
+**Đáp án mẫu**
+
+- **Một chart một thông điệp:** chỉ vẽ điều cần để ra quyết định, ví dụ lợi nhuận kênh điện thoại ở South theo quý so với các kênh khác.
+- **Title là kết luận:** "Kênh điện thoại ở South lỗ 6/8 quý gần nhất".
+- **Bỏ 3D và bảng 96 ô**, đưa bảng chi tiết vào phụ lục.
+- **Làm nổi bật** kênh điện thoại South bằng màu, các phần khác màu xám.
+- Thêm so-what ở đầu slide và tác động ước tính nếu đóng kênh.
+
+</Situation>
+
+## Tóm tắt tuần
+
+- Câu hỏi gắn với quyết định → giả thuyết viết trước → phân tích → so-what.
+- Kịch bản có số, giả định ghi rõ; độ nhạy cho giả định chính.
+- Chart: một thông điệp, title là kết luận, làm nổi bật cái cần thấy.
+- Trình bày: so-what → bằng chứng → giới hạn → đề xuất.

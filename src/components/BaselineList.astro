@@ -1,0 +1,12 @@
+---
+// Danh sách câu hỏi đầu vào. mode="w00": khoá đáp án. mode="w16": làm lại và so với Tuần 0.
+import AnswerFirst from './AnswerFirst.tsx';
+import { BASELINE } from '../lib/baseline';
+type Props = { mode: 'w00' | 'w16' };
+const { mode } = Astro.props;
+---
+{BASELINE.map((b, i) => (
+  mode === 'w00'
+    ? <AnswerFirst client:visible id={'w00-' + b.id} question={(i + 1) + '. ' + b.question} answer={b.answer} lockAnswer />
+    : <AnswerFirst client:visible id={'w16-' + b.id} question={(i + 1) + '. ' + b.question} answer={b.answer} compareWith={'w00-' + b.id} />
+))}

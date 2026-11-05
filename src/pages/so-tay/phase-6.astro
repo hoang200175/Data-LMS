@@ -1,0 +1,39 @@
+---
+import Base from '../../layouts/Base.astro';
+---
+<Base title="Sổ tay Phase 6">
+  <p class="muted no-print">Sổ tay tóm tắt để ôn nhanh hoặc in ra. <button onclick="window.print()">In / Lưu PDF</button></p>
+  <h1>Sổ tay Phase 6: Đề xuất và capstone</h1>
+
+  <h2>Tuần 15. Từ phân tích tới đề xuất</h2>
+  <table>
+    <tr><th>Khái niệm</th><th>Nhớ một câu</th></tr>
+    <tr><td>Vòng phân tích</td><td>Câu hỏi gắn với quyết định → giả thuyết viết trước → phân tích → so-what.</td></tr>
+    <tr><td>So-what 3 dòng</td><td>Kết luận · đề xuất · tác động có số. Đặt ở đầu bài.</td></tr>
+    <tr><td>Kịch bản</td><td>Gốc, xấu, trung bình, tốt; mỗi kịch bản ghi rõ giả định.</td></tr>
+    <tr><td>Độ nhạy</td><td>Đổi giả định chính trong khoảng hợp lý; kết luận đứng vững thì đề xuất chắc.</td></tr>
+    <tr><td>Chart</td><td>Một thông điệp, title là kết luận, làm nổi bật cái cần thấy, bỏ 3D.</td></tr>
+  </table>
+
+  <h2>Tuần 16. Capstone</h2>
+  <ul>
+    <li>Mô tả: grain, data quality, đối soát, metric rõ tử số và mẫu số.</li>
+    <li>Chẩn đoán: driver tree hoặc PVM; confounder và giới hạn.</li>
+    <li>Dự báo: baseline, chia đúng cách, kèm khoảng.</li>
+    <li>Đề xuất: ít nhất 2 kịch bản có số, so-what 3 dòng.</li>
+    <li>Rà bẫy: grain, fan-out, average of averages, Simpson, confounder, regression to the mean, survivorship, leakage.</li>
+  </ul>
+
+  <h2>Checklist trước khi gửi bất kỳ con số nào</h2>
+  <ul>
+    <li>Một dòng là gì? Mình đếm dòng hay đếm đối tượng?</li>
+    <li>Dữ liệu đã kiểm tra trùng, thiếu, bất thường? Tổng có khớp sau mỗi bước?</li>
+    <li>Metric ghi rõ tử số, mẫu số, kỳ, bộ lọc? % hay pp?</li>
+    <li>Mean hay median? Đã nhìn phân phối?</li>
+    <li>Con số gộp có bị mix (Simpson) không?</li>
+    <li>Kết luận nhân quả: có nhóm control, đã xét confounder?</li>
+    <li>p nhỏ: hiệu ứng có đủ lớn để đáng làm?</li>
+    <li>Dự báo: có baseline, có khoảng?</li>
+    <li>Người nhận biết phải làm gì sau khi đọc?</li>
+  </ul>
+</Base>

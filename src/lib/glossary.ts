@@ -131,4 +131,11 @@ export const GLOSSARY: Term[] = [
   { en: 'Exponential smoothing', vi: 'Làm mượt hàm mũ', def: 'Trung bình có trọng số, dữ liệu gần đây nặng hơn; Holt-Winters có trend và mùa vụ.', week: 14 },
   { en: 'Backtest', vi: 'Kiểm tra lùi', def: 'Dự báo một giai đoạn quá khứ đã biết đáp án để đo sai số.', week: 14 },
   { en: 'Prediction interval', vi: 'Khoảng dự báo', def: 'Khoảng mà giá trị thật có khả năng rơi vào, ví dụ 80%.', week: 14 },
+  { en: 'So-what', vi: 'Vậy thì sao', def: 'Kết luận nghĩa là ai cần làm gì, tác động bao nhiêu.', week: 15 },
+  { en: 'Hypothesis', vi: 'Giả thuyết', def: 'Điều mình định kiểm tra, viết trước khi phân tích.', week: 15 },
+  { en: 'What-if analysis', vi: 'Phân tích giả định', def: 'Tính kết quả khi thay đổi một giả định.', week: 15 },
+  { en: 'Scenario analysis', vi: 'Phân tích kịch bản', def: 'Vài phiên bản giả định có số: gốc, xấu, trung bình, tốt.', week: 15 },
+  { en: 'Sensitivity analysis', vi: 'Phân tích độ nhạy', def: 'Thay đổi giả định trong khoảng hợp lý xem kết luận có đổi không.', week: 15 },
+  { en: 'Storytelling with data', vi: 'Kể chuyện bằng dữ liệu', def: 'Một chart một thông điệp, title là kết luận.', week: 15 },
+  { en: 'Capstone', vi: 'Dự án tổng kết', def: 'Bài phân tích hoàn chỉnh đi đủ mô tả, chẩn đoán, dự báo, đề xuất.', week: 16 },
 ];

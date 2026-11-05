@@ -1,0 +1,132 @@
+---
+week: 16
+title: Capstone và nhìn lại
+minutes: 600
+goals:
+  - "Làm một phân tích hoàn chỉnh đi đủ 4 bước: mô tả → chẩn đoán → dự báo → đề xuất."
+  - "Tự rà các bẫy đã học trên chính bài của mình."
+  - "Trình bày 15 phút trước team và trả lời được câu hỏi 'vì sao tin con số này?'."
+  - "Làm lại 12 tình huống của Tuần 0 và so sánh cách mình suy nghĩ trước và sau."
+media:
+  - kind: video
+    title: Video tóm tắt Tuần 16
+    lang: Tiếng Việt
+---
+import PythonCell from '../../components/PythonCell.tsx';
+import Checklist from '../../components/Checklist.tsx';
+import BaselineList from '../../components/BaselineList.astro';
+
+Tuần cuối không có kiến thức mới. Bạn dùng mọi thứ đã học cho **một bài phân tích của riêng mình**, rồi nhìn lại xem 16 tuần đã thay đổi cách bạn nghĩ về số liệu thế nào.
+
+## Phần 1. Capstone
+
+### Chọn đề bài
+
+Chọn **một** trong ba hướng, hoặc dùng dữ liệu công việc của bạn (đã ẩn thông tin nhạy cảm):
+
+| Đề bài | Dữ liệu | Câu hỏi gợi ý |
+| --- | --- | --- |
+| **Chính sách chiết khấu** | `superstore_sample.csv` | Có nên giới hạn chiết khấu? Giới hạn ở mức nào? |
+| **Kế hoạch năm sau theo Category** | `superstore_sample.csv` | Category nào nên đầu tư thêm, dự báo doanh thu năm sau kèm khoảng? |
+| **Ưu tiên chất lượng sản phẩm** | `winequality_red.csv` | Chỉ số nào nên kiểm soát để tăng tỷ lệ rượu đạt điểm từ 7 trở lên? |
+
+### Bốn bước bắt buộc
+
+1. **Mô tả** (Phase 1–2): grain, data quality, đối soát tổng, metric có tử số và mẫu số rõ ràng.
+2. **Chẩn đoán** (Phase 4): ít nhất một driver tree hoặc PVM; mỗi kết luận nhân quả nêu confounder hoặc giới hạn.
+3. **Dự báo** (Phase 5): có baseline, model thắng baseline, chia train/test đúng cách, dự báo kèm khoảng.
+4. **Đề xuất** (Phase 6): ít nhất 2 kịch bản what-if có số; so-what 3 dòng ở đầu.
+
+### Khung code để bắt đầu
+
+Ô dưới đây là khung cho đề bài chiết khấu: mỗi bước có sẵn một `assert` đối soát. Bạn sửa, thêm bước tuỳ ý. Kiểm tra chỉ xác nhận khung chạy đúng; chất lượng phân tích bạn tự chấm bằng checklist ở dưới.
+
+<PythonCell client:visible id="w16-py-capstone" title="Khung capstone: mô tả → chẩn đoán → dự báo → đề xuất" code={`import numpy as np
+import pandas as pd
+
+# ===== 0. Câu hỏi và giả thuyết (viết TRƯỚC khi phân tích) =====
+cau_hoi = "Có nên giới hạn chiết khấu tối đa ở 20% không?"
+gia_thuyet = "Các dòng chiết khấu từ 30% trở lên đang lỗ; giới hạn ở 20% sẽ tăng lợi nhuận dù mất một phần doanh thu."
+
+# ===== 1. Mô tả: grain, data quality, đối soát =====
+tho = pd.read_csv("superstore_sample.csv")
+df = tho.drop_duplicates()
+print("Grain: một dòng = một sản phẩm trong một đơn | số dòng trùng đã xoá:", len(tho) - len(df))
+tong_sales = df["Sales"].sum()
+
+theo_ck = df.groupby("Discount").agg(so_dong=("Sales", "size"), sales=("Sales", "sum"), profit=("Profit", "sum"))
+theo_ck["margin"] = theo_ck["profit"] / theo_ck["sales"]       # tỷ lệ tổng, không phải trung bình các tỷ lệ
+assert abs(theo_ck["sales"].sum() - tong_sales) < 1e-6         # đối soát sau groupby
+print(theo_ck.round(3))
+
+# ===== 2. Chẩn đoán: chiết khấu sâu tập trung ở đâu? (kiểm tra confounder: Category) =====
+df["sau"] = df["Discount"] >= 0.3
+bang = df.pivot_table(index="Category", columns="sau", values="Profit", aggfunc="sum")
+print(bang.round(0))
+
+# ===== 3. Dự báo: lợi nhuận năm sau nếu giữ nguyên (baseline = năm gần nhất) =====
+df["nam"] = pd.to_datetime(df["Order Date"]).dt.year
+loi_nhuan_nam = df.groupby("nam")["Profit"].sum()
+du_bao_baseline = loi_nhuan_nam.iloc[-1]
+bien_dong = loi_nhuan_nam.pct_change().dropna()
+khoang = (du_bao_baseline * (1 + bien_dong.min()), du_bao_baseline * (1 + bien_dong.max()))
+print("Dự báo lợi nhuận năm sau nếu giữ nguyên:", round(du_bao_baseline), "khoảng", [round(x) for x in khoang])
+
+# ===== 4. Đề xuất: kịch bản what-if =====
+nong, sau = df[~df["sau"]], df[df["sau"]]
+margin_20 = theo_ck.loc[0.2, "margin"]
+kich_ban = {f"giữ {int(g * 100)}%": nong["Profit"].sum() + g * sau["Sales"].sum() * margin_20 for g in [0, 0.3, 0.6, 0.9]}
+kich_ban["hiện tại"] = df["Profit"].sum()
+print({k: round(v) for k, v in kich_ban.items()})
+
+so_what = [
+    "Kết luận: ...",
+    "Đề xuất: ...",
+    "Tác động: ...",
+]`}
+tests={[
+  { code: "assert abs(theo_ck['sales'].sum() - df['Sales'].sum()) < 1e-6", message: "Đối soát tổng sau groupby" },
+  { code: "assert len(cau_hoi) > 10 and len(gia_thuyet) > 10", message: "Có câu hỏi và giả thuyết viết trước" },
+  { code: "assert len(kich_ban) >= 3", message: "Có ít nhất 2 kịch bản what-if cùng hiện trạng" },
+  { code: "assert len(so_what) == 3 and all('...' not in s for s in so_what), 'Hãy điền so-what 3 dòng bằng số của bạn'", message: "So-what 3 dòng đã được điền" },
+]} />
+
+### Checklist tự chấm
+
+<Checklist client:visible id="w16-capstone" title="Checkpoint 6: Capstone" items={[
+  "Câu hỏi business rõ ràng; giả thuyết viết trước khi phân tích.",
+  "Mô tả: xác định grain, kiểm tra data quality, assert đối soát số liệu pass; metric được định nghĩa rõ tử số và mẫu số.",
+  "Chẩn đoán: có ít nhất 1 phân rã driver hoặc PVM; mỗi kết luận nhân quả có nêu confounder hoặc giới hạn của nó.",
+  "Dự báo: có baseline; model thắng baseline; chia train/test đúng cách; dự báo kèm khoảng.",
+  "Đề xuất: có ít nhất 2 kịch bản what-if có số; đề xuất cụ thể, hành động được.",
+  "Storytelling: so-what 3 dòng ở đầu bài; mỗi chart chỉ 1 thông điệp, title của chart chính là kết luận.",
+  "Tự rà bẫy trên chính bài của mình: grain, fan-out, average of averages, Simpson, confounder, regression to the mean, survivorship, leakage.",
+  "Trình bày 15 phút trước team, trả lời được câu hỏi 'vì sao tin con số này?'.",
+]} />
+
+### Rà bẫy trên bài của mình
+
+<Checklist client:visible id="w16-traps" title="Đi qua từng bẫy" items={[
+  "Grain: mình đang đếm dòng hay đếm đối tượng?",
+  "Fan-out: sau mỗi merge, số dòng có giữ nguyên không?",
+  "Average of averages: tỷ lệ tổng tính bằng cộng tử chia cộng mẫu?",
+  "Simpson: con số gộp có đi ngược con số từng nhóm không?",
+  "Confounder: kết luận nhân quả đã xét biến thứ ba chưa?",
+  "Regression to the mean: có đang chọn nhóm cực đoan rồi so trước/sau không?",
+  "Survivorship / selection: mẫu có bỏ sót những đối tượng đã rời đi không?",
+  "Leakage: feature nào chưa thể có tại thời điểm dự báo?",
+]} />
+
+## Phần 2. Làm lại Tuần 0
+
+Đây là 12 tình huống bạn đã trả lời ở Tuần 0. Trả lời lại **trước khi** nhìn câu trả lời cũ. Sau khi nộp, bạn sẽ thấy câu trả lời Tuần 0, câu trả lời hôm nay và đáp án đặt cạnh nhau.
+
+Khi xong, tự hỏi: câu nào mình đã thay đổi cách nghĩ? Câu nào mình vẫn mắc cùng một bẫy? Đó là chỗ cần ôn lại trong Sổ tay.
+
+<BaselineList mode="w16" />
+
+## Bước tiếp theo
+
+- Ôn lại các Sổ tay phase, đặc biệt những phase có câu bạn chưa đúng ở trên.
+- Áp dụng checklist "trước khi gửi một con số" cho báo cáo thật ở công việc.
+- Lộ trình này cố ý chưa dạy SQL, Git, công cụ BI và AI/LLM. Đó là những bước tiếp theo hợp lý khi bạn đã vững tư duy.
