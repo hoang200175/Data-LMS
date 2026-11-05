@@ -1,0 +1,201 @@
+---
+week: 7
+title: Phân phối và expected value
+minutes: 240
+goals:
+  - "Nhận ra dữ liệu long tail và biết vì sao không được báo mỗi con số trung bình."
+  - "Mô tả phân phối normal và dùng quy tắc 68–95–99,7."
+  - "Tính expected value để so sánh các phương án, và biết EV chưa đủ để quyết định."
+  - "Đọc hiểu một xác suất binomial: kết quả quan sát được có bất thường không?"
+  - "Mô phỏng ngẫu nhiên bằng numpy.random."
+media:
+  - kind: video
+    title: Video tóm tắt Tuần 7
+    lang: Tiếng Việt
+  - kind: audio
+    title: Podcast Tuần 7
+    lang: Tiếng Việt
+---
+import PythonCell from '../../components/PythonCell.tsx';
+import Quiz from '../../components/Quiz.tsx';
+import Situation from '../../components/Situation.tsx';
+
+Phase 3 là **xác suất**: ngôn ngữ để nói về sự không chắc chắn. Bạn không cần công thức phức tạp. Mục tiêu là có trực giác đúng, kiểm tra trực giác bằng mô phỏng, và tránh vài cái bẫy rất phổ biến khi đọc số liệu.
+
+## Bài 7.1. Long tail: phần lớn nhỏ, vài cái rất lớn <span class="badge lvl7">[7]</span>
+
+Doanh thu theo khách hàng, chi tiêu theo đơn, lượt xem theo video, số ticket theo khách: phần lớn dữ liệu business có dạng **lệch phải, đuôi dài** (long tail). Phần lớn giá trị nhỏ, một số ít giá trị rất lớn.
+
+Hệ quả:
+
+- Mean lớn hơn median, có khi gấp nhiều lần.
+- Mean bị chi phối bởi vài giá trị lớn nhất. Thêm hay bớt một khách lớn là mean đổi hẳn.
+- Một phần nhỏ đối tượng chiếm phần lớn tổng (nhớ bài Pareto tuần 6).
+
+<div class="callout">**Ý chính bắt buộc:** phần lớn giá trị nhỏ, ít giá trị rất lớn → mean lớn hơn median. Phần lớn dữ liệu business có dạng này → luôn nhìn phân phối trước khi dùng trung bình.</div>
+
+<PythonCell client:visible id="w07-py-longtail" title="Doanh thu theo khách: long tail" code={`import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+df = pd.read_csv("superstore_sample.csv").drop_duplicates()
+
+theo_khach = df.groupby("Customer ID")["Sales"].sum()
+trung_binh = ...             # mean doanh thu mỗi khách
+trung_vi = ...               # median doanh thu mỗi khách
+
+# Mô phỏng: 10.000 giá trị lognormal, một dạng long tail hay gặp
+rng = np.random.default_rng(1)
+mo_phong = rng.lognormal(mean=6, sigma=1.2, size=10000)
+
+fig, ax = plt.subplots(1, 2, figsize=(11, 3.4))
+ax[0].hist(theo_khach, bins=40); ax[0].set_title("Superstore: doanh thu mỗi khách")
+ax[1].hist(mo_phong, bins=80); ax[1].set_title("Lognormal mô phỏng")
+print(f"Superstore: mean {trung_binh:,.0f} | median {trung_vi:,.0f}")
+print(f"Mô phỏng:   mean {mo_phong.mean():,.0f} | median {np.median(mo_phong):,.0f}")`}
+tests={[
+  { code: "assert abs(trung_binh - theo_khach.mean()) < 1e-6 and abs(trung_vi - theo_khach.median()) < 1e-6", message: "Tính đúng mean và median theo khách" },
+  { code: "assert trung_binh > trung_vi, 'Long tail nên mean phải lớn hơn median'", message: "Mean lớn hơn median" },
+  { code: "assert mo_phong.mean() > np.median(mo_phong) * 1.5", message: "Dữ liệu mô phỏng: mean lớn hơn median hơn 50%" },
+]} />
+
+## Bài 7.2. Phân phối normal <span class="badge">[6]</span>
+
+Phân phối **normal** (chuẩn) có hình chuông, đối xứng quanh mean; mean = median. Mô tả đủ bằng hai con số: mean và độ lệch chuẩn (sd).
+
+**Quy tắc 68–95–99,7:**
+
+| Khoảng | Tỷ lệ giá trị nằm trong |
+| --- | --- |
+| mean ± 1 sd | khoảng 68% |
+| mean ± 2 sd | khoảng 95% |
+| mean ± 3 sd | khoảng 99,7% |
+
+Ví dụ: điểm một bài test có mean 100, sd 15. Khoảng 95% người có điểm từ 70 đến 130; người được 145 điểm (trên 3 sd) là rất hiếm.
+
+Lưu ý: chiều cao, sai số đo lường, điểm thi gần với normal. **Doanh thu, thu nhập thì không**: đừng dùng quy tắc 68–95–99,7 cho dữ liệu long tail.
+
+<PythonCell client:visible id="w07-py-normal" title="Kiểm tra quy tắc 68–95–99,7" code={`import numpy as np
+rng = np.random.default_rng(42)
+x = rng.normal(loc=100, scale=15, size=10000)
+
+trong_1sd = ...              # tỷ lệ x nằm trong 85–115. Gợi ý: ((x >= 85) & (x <= 115)).mean()
+trong_2sd = ...              # tỷ lệ x nằm trong 70–130
+
+print(f"±1 sd: {trong_1sd:.1%} | ±2 sd: {trong_2sd:.1%}")`}
+tests={[
+  { code: "assert abs(trong_1sd - 0.68) <= 0.02, f'Đang ra {trong_1sd:.3f}'", message: "Khoảng ±1 sd chứa 68% ± 2 pp" },
+  { code: "assert abs(trong_2sd - 0.95) <= 0.01, f'Đang ra {trong_2sd:.3f}'", message: "Khoảng ±2 sd chứa khoảng 95%" },
+]} />
+
+## Bài 7.3. Expected value <span class="badge">[6]</span>
+
+**Expected value** (EV, giá trị kỳ vọng) là trung bình các kết quả, **có trọng số theo xác suất**. Nếu lặp lại quyết định rất nhiều lần, EV là kết quả trung bình mỗi lần.
+
+> EV = xác suất 1 × kết quả 1 + xác suất 2 × kết quả 2 + …
+
+Ví dụ: phương án A chắc chắn lãi 100. Phương án B có 50% lãi 300 và 50% lỗ 50. EV(B) = 0,5 × 300 + 0,5 × (−50) = **125**, cao hơn A.
+
+<div class="callout">**Ý chính:** EV là trung bình có trọng số theo xác suất, dùng để so sánh các phương án. Nhưng EV chưa phải tất cả: còn phải xét **rủi ro** (chịu được khoản lỗ không?), và **độ tin cậy của các xác suất** (ai ước lượng 50%, dựa trên gì?).</div>
+
+<PythonCell client:visible id="w07-py-ev" title="So sánh 2 phương án khuyến mãi" code={`import numpy as np
+
+# Phương án A: giảm giá 10%. 70% khả năng lãi thêm 200 triệu, 30% khả năng lỗ 50 triệu
+xs_A, kq_A = [0.7, 0.3], [200, -50]
+# Phương án B: tặng quà cho đơn lớn. 40% khả năng lãi thêm 500 triệu, 60% khả năng lỗ 100 triệu
+xs_B, kq_B = [0.4, 0.6], [500, -100]
+
+def ev(xac_suat, ket_qua):
+    ...                      # tổng của xác suất × kết quả
+
+ev_A, ev_B = ev(xs_A, kq_A), ev(xs_B, kq_B)
+print("EV A:", ev_A, "| EV B:", ev_B)
+
+# Kiểm tra bằng mô phỏng 100.000 lần
+rng = np.random.default_rng(0)
+mo_phong_B = rng.choice(kq_B, size=100000, p=xs_B)
+print("Trung bình mô phỏng B:", round(mo_phong_B.mean(), 1), "| Tỷ lệ lần bị lỗ:", (mo_phong_B < 0).mean())`}
+tests={[
+  { code: "assert abs(ev([0.5, 0.5], [300, -50]) - 125) < 1e-9, 'ev() chưa đúng: thử ví dụ 0,5 × 300 + 0,5 × (−50) = 125'", message: "Hàm ev đúng với ví dụ trong bài" },
+  { code: "assert abs(ev_A - 125) < 1e-9 and abs(ev_B - 140) < 1e-9, f'EV A = {ev_A}, EV B = {ev_B}'", message: "EV A = 125, EV B = 140" },
+  { code: "assert abs(mo_phong_B.mean() - ev_B) < 3", message: "Mô phỏng khớp EV (luật số lớn)" },
+]} />
+
+B có EV cao hơn, nhưng 60% khả năng bị lỗ. Nếu công ty không chịu được một quý lỗ 100 triệu, A có thể là lựa chọn tốt hơn.
+
+## Bài 7.4. Binomial: đọc hiểu một xác suất <span class="badge">[5]</span>
+
+**Binomial** mô tả số lần "thành công" trong n lần thử độc lập, mỗi lần có cùng xác suất p. Ví dụ: 10 khách vào cửa hàng, mỗi khách có 50% khả năng mua.
+
+Bạn không cần tự tính binomial ở mức này, chỉ cần **đọc hiểu**: "xác suất có ít nhất 8/10 khách mua khi p = 0,5 là khoảng 5,5%" nghĩa là nếu khả năng mua thật sự chỉ 50%, thì cứ khoảng 18 ngày mới có 1 ngày đạt 8/10. Hiếm, nhưng không phải không thể xảy ra. Một ngày 8/10 chưa đủ để kết luận khả năng mua đã tăng; nhiều ngày liên tiếp như vậy mới đáng chú ý.
+
+<PythonCell client:visible id="w07-py-binom" title="Xác suất ≥ 8/10 khách mua" code={`import numpy as np
+from math import comb
+
+n, p = 10, 0.5
+# Công thức: P(X = k) = comb(n, k) * p**k * (1-p)**(n-k)
+p_it_nhat_8 = ...            # tổng P(X = k) với k = 8, 9, 10
+
+# Mô phỏng 100.000 "ngày", mỗi ngày 10 khách
+rng = np.random.default_rng(3)
+so_khach_mua = rng.binomial(n, p, size=100000)
+mo_phong = (so_khach_mua >= 8).mean()
+
+print(f"Công thức: {p_it_nhat_8:.4f} | Mô phỏng: {mo_phong:.4f}")`}
+tests={[
+  { code: "assert abs(p_it_nhat_8 - 56/1024) < 1e-9, f'Đang ra {p_it_nhat_8}, cần khoảng 0,0547'", message: "P(X ≥ 8) ≈ 5,5%" },
+  { code: "assert abs(mo_phong - p_it_nhat_8) < 0.005", message: "Mô phỏng khớp công thức" },
+]} />
+
+<Quiz client:visible id="w07-q-dist" questions={[
+  { q: "Chi tiêu trung bình mỗi khách là 2 triệu, median là 400 nghìn. Câu nào đúng?", options: ["Phần lớn khách chi khoảng 2 triệu", "Phần lớn khách chi ít, một số ít khách chi rất nhiều", "Dữ liệu có lỗi"], answer: 1, explain: "Mean gấp 5 lần median là dấu hiệu long tail." },
+  { q: "Thời gian xử lý đơn có dạng gần normal, mean 30 phút, sd 5 phút. Khoảng 95% đơn xử lý trong bao lâu?", options: ["25–35 phút", "20–40 phút", "15–45 phút"], answer: 1, explain: "Mean ± 2 sd = 30 ± 10 phút." },
+  { q: "Phương án X có EV cao nhất. Vì sao vẫn có thể không chọn X?", options: ["Vì EV luôn sai", "Vì X có khả năng lỗ lớn mà công ty không chịu nổi, hoặc xác suất ước lượng không đáng tin", "Không có lý do, luôn chọn EV cao nhất"], answer: 1, explain: "EV chỉ là trung bình dài hạn. Rủi ro và độ tin cậy của xác suất cũng là một phần của quyết định." },
+]} />
+
+## Luyện tập tình huống
+
+<Situation client:visible id="w07-th-typhu" title="Tình huống: một tỷ phú gia nhập nhóm" context="Nhóm 10 người có thu nhập trung bình 15 triệu đồng/tháng, median 14 triệu. Một tỷ phú có thu nhập 5 tỷ đồng/tháng gia nhập nhóm. Bạn cần báo cáo 'thu nhập điển hình' của nhóm 11 người." question="Mean mới là bao nhiêu? Nên báo cáo con số nào, và vì sao?">
+
+**Đáp án mẫu**
+
+- Mean mới = (10 × 15 + 5.000) / 11 ≈ **468 triệu**, không mô tả được ai trong nhóm.
+- Median gần như không đổi (khoảng 14–15 triệu).
+- Nên báo **median**, kèm ghi chú có 1 giá trị cực lớn. Mean bị một outlier kéo lệch hoàn toàn.
+
+**Lỗi hay gặp:** báo mean vì "đúng công thức"; hoặc xoá tỷ phú khỏi dữ liệu mà không nói.
+
+</Situation>
+
+<Situation client:visible id="w07-th-ev" title="Tình huống: chắc chắn lãi 100 hay đánh cược?" context="Phương án A chắc chắn lãi 100 triệu. Phương án B có 50% khả năng lãi 300 triệu và 50% khả năng lỗ 50 triệu." question="Tính EV của từng phương án. Chọn phương án nào, và ngoài EV còn cần cân nhắc gì?">
+
+**Đáp án mẫu**
+
+- EV(A) = 100. EV(B) = 0,5 × 300 − 0,5 × 50 = **125**.
+- B có EV cao hơn. Nếu quyết định này lặp lại nhiều lần và công ty chịu được khoản lỗ 50 triệu, B tốt hơn về dài hạn.
+- Cần cân nhắc thêm: **khả năng chịu lỗ** (một lần lỗ có gây hậu quả lớn không?), **độ tin cậy của 50%** (ước lượng từ dữ liệu hay cảm tính?), và quyết định này làm một lần hay lặp lại nhiều lần.
+
+**Lỗi hay gặp:** chọn A chỉ vì "chắc chắn" mà không tính EV; hoặc chọn B mà không hỏi xác suất đến từ đâu.
+
+</Situation>
+
+<Situation client:visible id="w07-th-avg" title="Tình huống: 'doanh thu trung bình mỗi khách'" context="Báo cáo quý ghi: 'Doanh thu trung bình mỗi khách hàng là 8,4 triệu đồng, tăng 12% so với quý trước.' Sếp muốn dùng con số này để đặt mục tiêu cho đội bán hàng." question="Trước khi dùng con số này, bạn cần hỏi thêm gì?">
+
+**Đáp án mẫu**
+
+Doanh thu theo khách là dữ liệu **long tail**, nên hỏi:
+
+- **Median** là bao nhiêu? Khách "điển hình" chi bao nhiêu?
+- **Phân phối** thế nào: P25, P75, P90?
+- **Mức tập trung:** top 10% hay top 20% khách chiếm bao nhiêu % doanh thu?
+- Mức tăng 12% đến từ **đa số khách** chi nhiều hơn, hay từ **vài khách lớn**?
+
+Nếu vài khách lớn kéo mean lên, đặt mục tiêu theo mean sẽ không thực tế với phần lớn nhân viên.
+
+</Situation>
+
+## Tóm tắt tuần
+
+- Dữ liệu business thường long tail: mean lớn hơn median → nhìn phân phối, báo median, đo mức tập trung.
+- Normal: hình chuông, đối xứng, quy tắc 68–95–99,7. Không áp cho doanh thu.
+- EV = trung bình có trọng số theo xác suất. Quyết định còn cần xét rủi ro và độ tin cậy của xác suất.
+- Binomial: đọc xác suất như "bao lâu mới gặp một lần" để biết kết quả có bất thường không.

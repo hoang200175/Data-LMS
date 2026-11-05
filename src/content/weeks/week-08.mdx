@@ -1,0 +1,180 @@
+---
+week: 8
+title: Xác suất có điều kiện và base rate
+minutes: 240
+goals:
+  - "Phân biệt P(A|B) và P(B|A), cho được ví dụ hai giá trị khác nhau."
+  - "Giải bài toán base rate bằng bảng tần suất trên 1.000 người, không cần công thức Bayes."
+  - "Lập bảng xác suất có điều kiện bằng pd.crosstab."
+  - "Giải thích luật số lớn (LLN) và định lý giới hạn trung tâm (CLT) bằng mô phỏng."
+  - "Nhận ra gambler's fallacy."
+media:
+  - kind: video
+    title: Video tóm tắt Tuần 8
+    lang: Tiếng Việt
+  - kind: audio
+    title: Podcast Tuần 8
+    lang: Tiếng Việt
+---
+import PythonCell from '../../components/PythonCell.tsx';
+import Quiz from '../../components/Quiz.tsx';
+import Situation from '../../components/Situation.tsx';
+
+Tuần này học hai ý tưởng giúp tránh những kết luận sai phổ biến nhất về xác suất: **điều kiện đặt ở đâu** và **tỷ lệ nền là bao nhiêu**.
+
+## Bài 8.1. Xác suất có điều kiện <span class="badge lvl7">[7]</span>
+
+**P(A | B)** đọc là "xác suất A **khi biết** B". Ta chỉ nhìn trong nhóm B, rồi hỏi bao nhiêu phần là A.
+
+Ví dụ: trong 1.000 khách, 200 khách dùng app; trong 200 khách đó, 50 khách mua hàng tuần.
+
+- P(mua hàng tuần | dùng app) = 50 / 200 = **25%**: nhìn trong nhóm dùng app.
+- Giả sử tổng cộng có 100 khách mua hàng tuần. P(dùng app | mua hàng tuần) = 50 / 100 = **50%**: nhìn trong nhóm mua hàng tuần.
+
+Hai con số khác nhau vì **mẫu số khác nhau**. Đảo điều kiện là đổi hẳn câu hỏi.
+
+<div class="callout">**Ý chính bắt buộc:** P(A|B) ≠ P(B|A). "Phần lớn người mua hàng tuần dùng app" không có nghĩa "phần lớn người dùng app mua hàng tuần".</div>
+
+Ví dụ đời thường: hầu hết người chơi bóng rổ chuyên nghiệp đều cao (P(cao | cầu thủ) lớn), nhưng rất ít người cao là cầu thủ chuyên nghiệp (P(cầu thủ | cao) rất nhỏ).
+
+<PythonCell client:visible id="w08-py-crosstab" title="Hai chiều điều kiện với pd.crosstab" code={`import pandas as pd
+df = pd.read_csv("superstore_sample.csv").drop_duplicates()
+
+# Mỗi hàng (Region) cộng lại 100%: P(Category | Region)
+theo_vung = pd.crosstab(df["Region"], df["Category"], normalize="index")
+
+# Mỗi cột (Category) cộng lại 100%: P(Region | Category)
+theo_nhom = ...              # gợi ý: normalize="columns"
+
+p_tech_khi_west = theo_vung.loc["West", "Technology"]
+p_west_khi_tech = ...        # P(Region = West | Category = Technology)
+
+print(f"P(Technology | West) = {p_tech_khi_west:.1%}")
+print(f"P(West | Technology) = {p_west_khi_tech:.1%}")
+theo_vung.round(3)`}
+tests={[
+  { code: "assert (theo_nhom.sum(axis=0).round(9) == 1).all(), 'Mỗi cột của theo_nhom phải cộng lại 100%'", message: "theo_nhom: mỗi cột cộng 100%" },
+  { code: "assert abs(p_west_khi_tech - ((df.Region=='West') & (df.Category=='Technology')).sum() / (df.Category=='Technology').sum()) < 1e-9", message: "Tính đúng P(West | Technology)" },
+  { code: "assert abs(p_tech_khi_west - p_west_khi_tech) > 0.01, 'Hai chiều điều kiện phải khác nhau'", message: "P(A|B) khác P(B|A)" },
+]} />
+
+## Bài 8.2. Base rate: bảng tần suất 1.000 người <span class="badge lvl7">[7]</span>
+
+Một bệnh có **tỷ lệ nền** (base rate) 1%. Test có **độ nhạy** 90% (người bệnh thì 90% test dương tính) và **tỷ lệ dương tính giả** 9% (người khoẻ thì 9% test vẫn dương tính). Một người test dương tính. Khả năng họ bị bệnh là bao nhiêu?
+
+Đa số người đoán khoảng 90%. Hãy lập **bảng tần suất trên 1.000 người**:
+
+| | Dương tính | Âm tính | Tổng |
+| --- | --- | --- | --- |
+| **Bệnh** | 9 (90% của 10) | 1 | 10 (1%) |
+| **Khoẻ** | 89 (9% của 990) | 901 | 990 |
+| **Tổng** | **98** | 902 | 1.000 |
+
+Trong 98 người dương tính, chỉ 9 người thật sự bệnh: P(bệnh | dương tính) = 9 / 98 ≈ **9%**.
+
+Vì bệnh hiếm, số người khoẻ rất đông, nên dù chỉ 9% người khoẻ bị báo nhầm, con số đó (89 người) vẫn lớn gấp 10 lần số người bệnh thật (9 người).
+
+<div class="callout">**Ý chính bắt buộc:** kết quả của một test phải đặt trên tỷ lệ nền. Cách làm: lập bảng tần suất trên 1.000 người, rồi đọc trong cột "dương tính".</div>
+
+Trong business: hệ thống cảnh báo gian lận "chính xác 95%" trên giao dịch mà chỉ 0,1% là gian lận thật thì phần lớn cảnh báo sẽ là báo nhầm. Đội kiểm tra cần biết điều đó để không bỏ qua cảnh báo, và để đánh giá hệ thống đúng cách.
+
+<PythonCell client:visible id="w08-py-baserate" title="Base rate: bảng tần suất và mô phỏng" code={`import numpy as np
+import pandas as pd
+
+ty_le_nen, do_nhay, duong_gia = 0.01, 0.90, 0.09
+
+# Cách 1: bảng tần suất trên 1.000 người
+n = 1000
+benh = n * ty_le_nen
+benh_duong = benh * do_nhay
+khoe_duong = (n - benh) * duong_gia
+p_benh_khi_duong = ...       # benh_duong / (benh_duong + khoe_duong)
+
+# Cách 2: mô phỏng 200.000 người và lập bảng bằng crosstab
+rng = np.random.default_rng(8)
+m = 200000
+la_benh = rng.random(m) < ty_le_nen
+duong_tinh = np.where(la_benh, rng.random(m) < do_nhay, rng.random(m) < duong_gia)
+bang = pd.crosstab(pd.Series(la_benh, name="Bệnh"), pd.Series(duong_tinh, name="Dương tính"))
+mo_phong = ...               # trong cột Dương tính = True, tỷ lệ Bệnh = True. Gợi ý: bang.loc[True, True] / bang[True].sum()
+
+print(f"Bảng tần suất: {p_benh_khi_duong:.1%} | Mô phỏng: {mo_phong:.1%}")
+bang`}
+tests={[
+  { code: "assert abs(p_benh_khi_duong - 9/98.1) < 1e-6, f'Đang ra {p_benh_khi_duong:.4f}'", message: "Bảng tần suất: P(bệnh | dương tính) ≈ 9%" },
+  { code: "assert abs(mo_phong - p_benh_khi_duong) < 0.01, f'Mô phỏng ra {mo_phong:.4f}'", message: "Mô phỏng khớp bảng tần suất" },
+]} />
+
+## Bài 8.3. Luật số lớn và định lý giới hạn trung tâm <span class="badge">[5]</span>
+
+**Luật số lớn (LLN):** càng lặp lại nhiều lần, tỷ lệ quan sát được càng tiến gần xác suất thật. Tung đồng xu 10 lần có thể ra 70% ngửa; tung 10.000 lần sẽ rất gần 50%. Vì vậy **mẫu nhỏ dao động mạnh**: cửa hàng nhỏ hay xuất hiện ở cả top tốt nhất lẫn top tệ nhất.
+
+**Gambler's fallacy:** LLN **không** có nghĩa là đồng xu "nhớ" và tự cân bằng. Sau 5 lần ngửa liên tiếp, lần tiếp theo vẫn là 50%: các lần tung độc lập.
+
+**Định lý giới hạn trung tâm (CLT):** lấy nhiều mẫu, mỗi mẫu tính trung bình, thì các **trung bình mẫu** có phân phối gần normal, kể cả khi dữ liệu gốc lệch. Độ phân tán của trung bình mẫu giảm theo căn bậc hai của cỡ mẫu: sd / √n. Đây là nền tảng cho khoảng tin cậy và A/B test ở Phase 4.
+
+<PythonCell client:visible id="w08-py-lln-clt" title="Mô phỏng LLN và CLT" code={`import numpy as np
+import matplotlib.pyplot as plt
+rng = np.random.default_rng(5)
+
+# LLN: tỷ lệ mặt ngửa khi tung 10, 100, 10.000 lần
+ty_le_ngua = {}
+for so_lan in [10, 100, 10000]:
+    ty_le_ngua[so_lan] = rng.integers(0, 2, size=so_lan).mean()
+print("Tỷ lệ ngửa:", ty_le_ngua)
+
+# CLT: dữ liệu gốc lệch (lognormal), lấy 5.000 mẫu, mỗi mẫu 50 giá trị
+goc = rng.lognormal(mean=3, sigma=0.8, size=200000)
+tb_mau = rng.choice(goc, size=(5000, 50)).mean(axis=1)
+
+sd_ly_thuyet = ...           # goc.std() / np.sqrt(50)
+
+fig, ax = plt.subplots(1, 2, figsize=(11, 3.4))
+ax[0].hist(goc, bins=80); ax[0].set_title("Dữ liệu gốc: lệch phải")
+ax[1].hist(tb_mau, bins=60); ax[1].set_title("Trung bình của 5.000 mẫu: gần normal")
+print(f"sd của trung bình mẫu: {tb_mau.std():.2f} | lý thuyết sd/√n: {sd_ly_thuyet:.2f}")`}
+tests={[
+  { code: "assert abs(ty_le_ngua[10000] - 0.5) < 0.02, 'Tung 10.000 lần phải rất gần 50%'", message: "LLN: 10.000 lần tung cho tỷ lệ gần 50%" },
+  { code: "assert abs(sd_ly_thuyet - goc.std() / np.sqrt(50)) < 1e-9, 'sd_ly_thuyet = goc.std() / np.sqrt(50)'", message: "Tính đúng sd/√n" },
+  { code: "assert abs(tb_mau.std() / sd_ly_thuyet - 1) < 0.05", message: "CLT: độ phân tán của trung bình mẫu khớp sd/√n" },
+]} />
+
+<Quiz client:visible id="w08-q-cond" questions={[
+  { q: "80% khách huỷ gói đã từng gọi tổng đài phàn nàn. Có thể kết luận 80% khách gọi phàn nàn sẽ huỷ gói không?", options: ["Có", "Không: đó là P(phàn nàn | huỷ), không phải P(huỷ | phàn nàn)", "Chỉ khi có đủ dữ liệu"], answer: 1, explain: "Đảo điều kiện là đổi mẫu số. Cần biết trong tất cả khách gọi phàn nàn, bao nhiêu % huỷ." },
+  { q: "Một hệ thống cảnh báo gian lận đúng 95%, nhưng chỉ 0,1% giao dịch là gian lận. Phần lớn cảnh báo là gì?", options: ["Gian lận thật", "Báo nhầm", "Không xác định được"], answer: 1, explain: "Base rate rất thấp: số giao dịch bình thường bị báo nhầm lớn hơn nhiều số gian lận thật." },
+  { q: "Cửa hàng có ít khách nhất xuất hiện ở cả top 5 tốt nhất và top 5 tệ nhất về tỷ lệ chuyển đổi. Vì sao?", options: ["Quản lý thất thường", "Mẫu nhỏ dao động mạnh (luật số lớn)", "Lỗi dữ liệu"], answer: 1, explain: "Ít quan sát thì tỷ lệ dao động nhiều. Cửa hàng lớn có tỷ lệ ổn định hơn." },
+]} />
+
+## Luyện tập tình huống
+
+<Situation client:visible id="w08-th-test" title="Tình huống: test chính xác 99%" context="Một test sàng lọc được quảng cáo 'chính xác 99%' (độ nhạy 99%, dương tính giả 1%). Bệnh này chỉ có ở 1 trên 1.000 người. Một người đi xét nghiệm và nhận kết quả dương tính." question="Có chắc chắn người đó mắc bệnh không? Hãy lập bảng tần suất trên 100.000 người để trả lời.">
+
+**Đáp án mẫu**
+
+- 100.000 người: 100 người bệnh → 99 dương tính. 99.900 người khoẻ → 1% = **999** dương tính giả.
+- P(bệnh | dương tính) = 99 / (99 + 999) ≈ **9%**.
+- **Không chắc chắn.** Bệnh hiếm nên phần lớn ca dương tính là dương tính giả. Cần xét nghiệm lần hai hoặc test chính xác hơn.
+
+**Lỗi hay gặp:** nhầm "test chính xác 99%" thành "99% người dương tính bị bệnh", tức là nhầm P(dương | bệnh) với P(bệnh | dương).
+
+</Situation>
+
+<Situation client:visible id="w08-th-coin" title="Tình huống: 5 lần ngửa liên tiếp" context="Một đồng xu cân đối được tung ra 5 lần ngửa liên tiếp. Đồng nghiệp nói: 'Lần sau chắc chắn ra sấp, vì phải cân bằng lại.' Một đồng nghiệp khác nói: 'Đang hên, lần sau chắc vẫn ngửa.'" question="Lần tiếp theo, khả năng ra ngửa có cao hơn hay thấp hơn 50% không? Liên hệ với một tình huống trong công việc.">
+
+**Đáp án mẫu**
+
+- **Vẫn 50%.** Các lần tung độc lập, đồng xu không "nhớ". Cả hai đồng nghiệp đều mắc **gambler's fallacy** (hoặc "hot hand").
+- Luật số lớn nói về tỷ lệ trên **rất nhiều lần**, không phải về việc bù trừ trong vài lần tiếp theo.
+- Trong công việc: "3 tháng liền doanh số thấp, tháng này chắc phải cao" là suy luận sai nếu các tháng không liên quan nhau. Phải tìm nguyên nhân, không chờ "cân bằng lại".
+
+</Situation>
+
+## Tóm tắt tuần và chuẩn bị Checkpoint 3
+
+- P(A|B) ≠ P(B|A): luôn hỏi "đang nhìn trong nhóm nào?".
+- Base rate: lập bảng 1.000 người, đọc trong cột dương tính.
+- `pd.crosstab(..., normalize="index")` hoặc `"columns"` cho bảng xác suất có điều kiện.
+- LLN: mẫu lớn ổn định, mẫu nhỏ dao động mạnh. Không có "cân bằng lại".
+- CLT: trung bình mẫu gần normal, sd giảm theo √n.
+
+<div class="callout">**Checkpoint 3** (cuối tuần này): phần A giải thích closed-book xác suất có điều kiện, base rate, long tail [7], normal, EV [6], binomial, LLN, CLT [5]; phần B 6 bài numpy, đã có ở các ô code tuần 7–8; phần C 5 tình huống (test 99%, đồng xu, tỷ phú, EV, doanh thu trung bình). Đạt khi đủ ý chính, 100% assert pass, và đúng ≥ 4/5 tình huống. Xem tóm tắt trong Sổ tay Phase 3.</div>
