@@ -6,8 +6,10 @@ Code máy chủ: `functions/api/feedback.ts` (Cloudflare Pages Function). Khoá 
 
 ## Các bước (Hoang làm, khoảng 10 phút)
 
-1. Vào https://console.anthropic.com, đăng ký, nạp tiền (Billing), rồi vào **API Keys → Create Key**, đặt tên `data-lms`.
-2. Trong Console, vào **Limits** và đặt hạn mức chi tiêu theo tháng (ví dụ 20 USD), để chắc chắn không phát sinh quá mức khi site còn công khai.
+1. Vào https://platform.claude.com (Claude Console), đăng ký, nạp tiền (**Settings → Billing**), rồi vào **API Keys → Create Key**, đặt tên `data-lms`.
+2. Giới hạn chi tiêu, chọn một trong hai cách:
+   - **Settings → Limits** (https://platform.claude.com/settings/limits), mục *Spend limit* → *Change limit*, đặt ví dụ 20 USD/tháng. Nếu tài khoản mới chưa hiện mục này, có thể đặt theo workspace ở **Settings → Workspaces → (workspace) → Limits**.
+   - Cách chắc chắn nhất: chỉ nạp trước một khoản nhỏ (ví dụ 10 USD) và **tắt Auto reload** trong Billing. Hết tiền thì API ngừng, không bị trừ thêm.
 3. Vào Cloudflare dashboard → **Workers & Pages → data-lms → Settings → Variables and Secrets → Add**:
    - Type: **Secret**
    - Name: `ANTHROPIC_API_KEY`
