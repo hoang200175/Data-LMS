@@ -19,6 +19,11 @@ Code máy chủ: `functions/api/feedback.ts` (Cloudflare Pages Function). Khoá 
 
 Không dán khoá vào chat hay vào repo.
 
+Lưu ý hay gặp:
+- Tên phải đúng `ANTHROPIC_API_KEY` (không thêm số hay khoảng trắng) và nằm ở môi trường **Production**.
+- Thêm hoặc đổi Secret xong phải có một lần deploy mới thì mới có hiệu lực. Kiểm tra nhanh: mở `https://data-lms.pages.dev/api/feedback`, thấy `{"enabled":true}` là được.
+- Nên tạo workspace riêng (Console → Settings → Workspaces → Create workspace, ví dụ `data-lms`) và tạo khoá trong workspace đó, để chi phí và hạn mức của web tách khỏi việc khác. Web chỉ gọi một model cố định trong code (`AI_MODEL`, mặc định `claude-opus-5-5`).
+
 ## Biến tuỳ chọn
 
 | Biến | Ý nghĩa |
