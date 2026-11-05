@@ -16,6 +16,8 @@ const weeks = defineCollection({
     week: z.number(),
     title: z.string(),
     minutes: z.number().optional(),
+    // Trạng thái duyệt nội dung: nhap = bản nháp chờ duyệt, da-duyet = đã duyệt
+    review: z.enum(['nhap', 'da-duyet']).default('nhap'),
     goals: z.array(z.string()).optional(), // "Sau tuần này bạn có thể…"
     media: z.array(media).optional(), // video/audio tóm tắt tuần, hiện ở đầu trang
   }),

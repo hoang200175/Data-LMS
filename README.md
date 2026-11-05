@@ -47,3 +47,7 @@ Video và audio tóm tắt tuần khai báo trong frontmatter, mục `media` (`k
 ## Deploy
 
 Workflow `.github/workflows/deploy.yml` build và đưa site lên GitHub Pages mỗi khi push lên `main`. Cần bật một lần: Settings → Pages → Source: **GitHub Actions**.
+
+## Duyệt nội dung
+
+Mỗi tuần có trường `review` trong frontmatter: `nhap` (mặc định, trang hiện nhãn "Bản nháp, đang chờ duyệt") hoặc `da-duyet`. Claude soạn nháp, anh Hoang duyệt rồi đổi sang `da-duyet`.
