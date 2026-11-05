@@ -1,0 +1,173 @@
+---
+week: 13
+title: Phân loại và hồi quy
+minutes: 270
+goals:
+  - "Đọc confusion matrix và chỉ ra model hay nhầm ở đâu."
+  - "Cân nhắc chi phí của false positive và false negative theo từng bài toán."
+  - "Tính precision và recall bằng tay từ confusion matrix."
+  - "Đánh giá một model hồi quy bằng MAE so với baseline."
+  - "Biết decision tree và logistic regression làm gì, ở mức một câu."
+media:
+  - kind: video
+    title: Video tóm tắt Tuần 13
+    lang: Tiếng Việt
+  - kind: audio
+    title: Podcast Tuần 13
+    lang: Tiếng Việt
+---
+import PythonCell from '../../components/PythonCell.tsx';
+import Quiz from '../../components/Quiz.tsx';
+import Situation from '../../components/Situation.tsx';
+
+Tuần 12 hỏi "model có tốt hơn đoán bừa không?". Tuần này hỏi sâu hơn: model **sai kiểu gì**, và kiểu sai đó **tốn kém** thế nào cho doanh nghiệp.
+
+## Bài 13.1. Confusion matrix và hai loại sai lầm <span class="badge lvl7">[7]</span>
+
+Với bài toán hai lớp (có / không), mỗi dự đoán rơi vào một trong 4 ô:
+
+| | Dự đoán: Có | Dự đoán: Không |
+| --- | --- | --- |
+| **Thực tế: Có** | True positive (TP): bắt đúng | **False negative (FN): bỏ sót** |
+| **Thực tế: Không** | **False positive (FP): báo nhầm** | True negative (TN): bỏ qua đúng |
+
+Hai loại sai có **chi phí khác nhau**, tuỳ bài toán:
+
+| Bài toán | Sai nào tệ hơn | Vì sao |
+| --- | --- | --- |
+| Sàng lọc bệnh | **False negative** | Bỏ sót người bệnh nguy hiểm hơn bắt người khoẻ đi xét nghiệm thêm |
+| Lọc email spam | **False positive** | Chặn nhầm email hợp đồng tệ hơn để lọt vài email rác |
+| Phát hiện gian lận thẻ | Thường là FN | Bỏ sót gian lận gây mất tiền; nhưng FP quá nhiều làm khách khó chịu |
+
+<div class="callout">**Ý chính bắt buộc:** tuỳ bài toán mà ưu tiên giảm loại sai nào. Trước khi chọn model, hỏi: bỏ sót một ca tốn bao nhiêu, báo nhầm một ca tốn bao nhiêu?</div>
+
+## Bài 13.2. Precision và recall <span class="badge">[6]</span>
+
+- **Precision** = TP / (TP + FP): trong những ca model **báo "có"**, bao nhiêu % đúng? Precision thấp = nhiều báo nhầm.
+- **Recall** = TP / (TP + FN): trong những ca **thực tế "có"**, model bắt được bao nhiêu %? Recall thấp = bỏ sót nhiều.
+
+Thường không tối ưu được cả hai cùng lúc: hạ ngưỡng báo động thì recall tăng nhưng precision giảm. Chọn điểm cân bằng theo chi phí của bài 13.1.
+
+**Accuracy dễ đánh lừa khi dữ liệu mất cân bằng.** Nếu chỉ 1% giao dịch là gian lận, model "luôn đoán không gian lận" đạt accuracy 99%, nhưng recall bằng 0: không bắt được ca nào.
+
+<PythonCell client:visible id="w13-py-fraud" title="Accuracy 99% mà không bắt được gian lận nào" code={`import numpy as np
+from sklearn.metrics import accuracy_score, recall_score
+
+rng = np.random.default_rng(13)
+thuc_te = (rng.random(100000) < 0.01).astype(int)   # 1% là gian lận
+
+du_doan_ngay_tho = np.zeros_like(thuc_te)            # luôn đoán "không gian lận"
+acc = accuracy_score(thuc_te, du_doan_ngay_tho)
+recall = ...                 # recall_score(thuc_te, du_doan_ngay_tho)
+
+print(f"Accuracy: {acc:.1%} | Recall lớp gian lận: {recall:.0%}")`}
+tests={[
+  { code: "assert acc > 0.985", message: "Đoán ngây thơ vẫn đạt accuracy khoảng 99%" },
+  { code: "assert recall == 0, f'recall đang là {recall}'", message: "Nhưng recall = 0: không bắt được ca gian lận nào" },
+]} />
+
+Quay lại Iris: đọc confusion matrix để biết model hay nhầm loài nào với loài nào, rồi tự tính precision và recall.
+
+<PythonCell client:visible id="w13-py-iris-cm" title="Iris: confusion matrix, precision và recall" code={`import numpy as np
+from sklearn.datasets import load_iris
+from sklearn.model_selection import train_test_split
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.metrics import confusion_matrix, precision_score, recall_score
+
+iris = load_iris()
+X_train, X_test, y_train, y_test = train_test_split(iris.data, iris.target, test_size=0.3, random_state=42, stratify=iris.target)
+du_doan = DecisionTreeClassifier(random_state=0).fit(X_train, y_train).predict(X_test)
+
+cm = confusion_matrix(y_test, du_doan)   # hàng = thực tế, cột = dự đoán
+print("Thứ tự lớp:", list(iris.target_names))
+print(cm)
+
+# Tự tính cho lớp 1 (versicolor)
+TP = cm[1, 1]
+FP = cm[:, 1].sum() - TP     # dự đoán là versicolor nhưng thực tế không phải
+FN = ...                     # thực tế là versicolor nhưng dự đoán sai
+precision_tay = TP / (TP + FP)
+recall_tay = ...             # TP / (TP + FN)
+
+print(f"Tự tính: precision {precision_tay:.3f}, recall {recall_tay:.3f}")
+print(f"scikit-learn: precision {precision_score(y_test, du_doan, average=None)[1]:.3f}, recall {recall_score(y_test, du_doan, average=None)[1]:.3f}")`}
+tests={[
+  { code: "assert FN == cm[1, :].sum() - cm[1, 1], 'FN = cm[1, :].sum() - TP'", message: "Tính đúng FN" },
+  { code: "assert abs(precision_tay - precision_score(y_test, du_doan, average=None)[1]) < 1e-9 and abs(recall_tay - recall_score(y_test, du_doan, average=None)[1]) < 1e-9", message: "Precision và recall tự tính khớp scikit-learn" },
+  { code: "assert cm[0, 1:].sum() == 0 and cm[1:, 0].sum() == 0", message: "Setosa không bị nhầm; các lỗi nằm giữa versicolor và virginica" },
+]} />
+
+Hai loài hay bị nhầm là **versicolor** và **virginica**: kích thước cánh hoa của chúng chồng lấn nhau, còn setosa tách hẳn.
+
+## Bài 13.3. Hồi quy và MAE <span class="badge">[6]</span>
+
+**Linear regression** (hồi quy tuyến tính) dự đoán một con số bằng tổng có trọng số của các feature: điểm chất lượng ≈ a × nồng độ cồn + b × độ chua + … Ưu điểm: đơn giản, dễ giải thích.
+
+**MAE** (mean absolute error): trung bình độ lệch tuyệt đối. MAE = 0,5 nghĩa là trung bình đoán lệch 0,5 điểm. Dễ hiểu với người không làm kỹ thuật vì cùng đơn vị với đại lượng cần đoán.
+
+Baseline cho hồi quy: **luôn đoán giá trị trung bình** của train.
+
+<PythonCell client:visible id="w13-py-wine-lr" title="Wine Quality: linear regression so với baseline" code={`import numpy as np
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LinearRegression
+from sklearn.metrics import mean_absolute_error
+
+w = pd.read_csv("winequality_red.csv")
+X, y = w.drop(columns="quality"), w["quality"]
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.25, random_state=42)
+
+mae_baseline = ...           # MAE khi luôn đoán y_train.mean(). Gợi ý: mean_absolute_error(y_test, np.full(len(y_test), y_train.mean()))
+
+lr = LinearRegression().fit(X_train, y_train)
+mae_lr = mean_absolute_error(y_test, lr.predict(X_test))
+
+he_so = pd.Series(lr.coef_, index=X.columns).sort_values()
+print(f"MAE baseline: {mae_baseline:.3f} | MAE linear regression: {mae_lr:.3f}")
+he_so.round(3)`}
+tests={[
+  { code: "assert abs(mae_baseline - mean_absolute_error(y_test, np.full(len(y_test), y_train.mean()))) < 1e-9", message: "Tính đúng MAE baseline" },
+  { code: "assert mae_lr < mae_baseline, 'Model phải thắng baseline'", message: "Linear regression có MAE thấp hơn baseline" },
+]} />
+
+Linear regression giảm sai số từ khoảng 0,67 xuống 0,50 điểm. Có đáng không? Tuỳ mục đích: đủ để xếp loại sơ bộ, chưa đủ thay chuyên gia nếm rượu.
+
+## Bài 13.4. Decision tree và logistic regression <span class="badge">[5]</span>
+
+- **Decision tree:** chuỗi câu hỏi có/không ("nồng độ cồn trên 10,5%? độ chua dưới 0,6?") dẫn tới dự đoán. Dễ giải thích, dễ overfit nếu cây quá sâu.
+- **Logistic regression:** dù tên là "regression", dùng cho **phân loại**; cho ra **xác suất** thuộc lớp "có" (ví dụ 0,73 khả năng huỷ). Chọn ngưỡng (0,5 hay 0,2) để đổi xác suất thành quyết định, và ngưỡng đó chính là nơi đánh đổi precision với recall.
+
+<Quiz client:visible id="w13-q-cls" questions={[
+  { q: "Hệ thống sàng lọc ung thư sớm nên ưu tiên chỉ số nào?", options: ["Precision cao", "Recall cao: không bỏ sót người bệnh", "Accuracy cao"], answer: 1, explain: "Bỏ sót (FN) nguy hiểm hơn báo nhầm (FP) trong sàng lọc bệnh, nên ưu tiên recall." },
+  { q: "Model báo 100 giao dịch là gian lận, 20 giao dịch đúng là gian lận. Precision là bao nhiêu?", options: ["20%", "80%", "Không đủ thông tin"], answer: 0, explain: "Precision = TP / (TP + FP) = 20 / 100." },
+  { q: "Model dự báo giá nhà có MAE = 150 triệu, baseline (đoán giá trung bình) có MAE = 160 triệu. Nhận xét nào hợp lý?", options: ["Model rất tốt", "Model chỉ nhỉnh hơn baseline một chút; cần cân nhắc có đáng dùng không", "Model tệ hơn baseline"], answer: 1, explain: "Thắng baseline 10 triệu trên 160 triệu là cải thiện nhỏ." },
+]} />
+
+## Luyện tập tình huống
+
+<Situation client:visible id="w13-th-fraud" title="Tình huống: model gian lận accuracy 99%" context="Đội IT báo cáo: 'Model phát hiện gian lận mới đạt accuracy 99% trên dữ liệu test, đề xuất đưa vào vận hành.' Tỷ lệ giao dịch gian lận thực tế khoảng 1%." question="Con số 99% nói lên điều gì? Bạn cần hỏi thêm gì trước khi đồng ý?">
+
+**Đáp án mẫu**
+
+- Baseline "luôn đoán không gian lận" đã đạt **99%**, nên accuracy 99% **chưa chứng minh** model có giá trị.
+- Cần hỏi: **recall** của lớp gian lận (bắt được bao nhiêu % ca gian lận thật?), **precision** (trong các cảnh báo, bao nhiêu % đúng?), confusion matrix đầy đủ.
+- Quy ra tiền: mỗi ca bỏ sót mất bao nhiêu, mỗi cảnh báo nhầm tốn bao nhiêu công kiểm tra và làm phiền khách; chọn ngưỡng theo đó.
+
+</Situation>
+
+<Situation client:visible id="w13-th-fpfn" title="Tình huống: sàng lọc bệnh và lọc spam" context="Bạn được giao đánh giá hai model: (1) model sàng lọc sớm một bệnh nguy hiểm từ kết quả khám tổng quát; (2) model lọc email spam cho hộp thư công ty." question="Với mỗi bài toán, nên ưu tiên giảm false positive hay false negative? Chỉ số nào nên theo dõi?">
+
+**Đáp án mẫu**
+
+- **Sàng lọc bệnh:** ưu tiên giảm **false negative** (không bỏ sót người bệnh) → theo dõi **recall**. Báo nhầm chỉ tốn thêm một lần xét nghiệm.
+- **Lọc spam:** ưu tiên giảm **false positive** (không chặn nhầm email quan trọng) → theo dõi **precision** của lớp spam. Lọt vài email rác chỉ gây phiền.
+- Nguyên tắc chung: so chi phí của hai loại sai, rồi chọn ngưỡng.
+
+</Situation>
+
+## Tóm tắt tuần
+
+- Confusion matrix: TP, FP (báo nhầm), FN (bỏ sót), TN.
+- Precision: báo "có" thì đúng bao nhiêu. Recall: cái "có" thật bắt được bao nhiêu.
+- Dữ liệu mất cân bằng → accuracy đánh lừa. So với baseline, xem precision/recall.
+- Hồi quy: báo MAE so với baseline "đoán trung bình".

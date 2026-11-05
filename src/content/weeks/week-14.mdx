@@ -1,0 +1,170 @@
+---
+week: 14
+title: Dự báo chuỗi thời gian
+minutes: 270
+goals:
+  - "Chia train/test theo thời gian: train bằng quá khứ, test bằng tương lai."
+  - "Dựng và so sánh các baseline: naive, seasonal naive, moving average."
+  - "Đọc kết quả exponential smoothing so với baseline."
+  - "Trình bày dự báo kèm khoảng sai số, không chỉ một con số."
+media:
+  - kind: video
+    title: Video tóm tắt Tuần 14
+    lang: Tiếng Việt
+  - kind: audio
+    title: Podcast Tuần 14
+    lang: Tiếng Việt
+---
+import PythonCell from '../../components/PythonCell.tsx';
+import Quiz from '../../components/Quiz.tsx';
+import Situation from '../../components/Situation.tsx';
+
+Dự báo doanh số, số khách, lượng hàng cần nhập là việc hằng ngày của nhiều phòng ban. Tuần này dùng **AirPassengers**: số hành khách đi máy bay quốc tế mỗi tháng (nghìn người) từ 1949 đến 1960, một chuỗi có cả trend và seasonality rõ.
+
+## Bài 14.1. Train bằng quá khứ, test bằng tương lai <span class="badge lvl7">[7]</span>
+
+Với dữ liệu theo thời gian, **không được chia train/test ngẫu nhiên**. Nếu chia ngẫu nhiên, tháng 6/1960 có thể nằm trong train còn tháng 5/1960 trong test: model "nhìn thấy tương lai" để đoán quá khứ, nên điểm test đẹp hơn thực tế.
+
+Cách đúng: chọn một mốc thời gian. **Mọi thứ trước mốc là train, mọi thứ sau mốc là test.** Đây cũng là cách model sẽ được dùng thật: chỉ biết quá khứ, phải đoán tương lai.
+
+<div class="callout">**Ý chính bắt buộc:** train bằng quá khứ, test bằng tương lai. Chia ngẫu nhiên với dữ liệu theo thời gian thì model "nhìn thấy tương lai".</div>
+
+## Bài 14.2. Ba baseline cho chuỗi thời gian <span class="badge">[6]</span>
+
+| Phương pháp | Cách đoán | Hợp khi |
+| --- | --- | --- |
+| **Naive** | Mọi tháng tương lai = tháng cuối cùng đã biết | Chuỗi không có mùa vụ, thay đổi chậm |
+| **Seasonal naive** | Tháng tương lai = cùng tháng của năm gần nhất | Chuỗi có mùa vụ rõ |
+| **Moving average** | Trung bình N tháng gần nhất | Chuỗi nhiễu, cần làm mượt |
+
+Model phức tạp nào cũng phải thắng được ba cách này mới đáng dùng.
+
+<PythonCell client:visible id="w14-py-baselines" title="AirPassengers: naive, seasonal naive, moving average" code={`import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+from sklearn.metrics import mean_absolute_error
+
+ap = pd.read_csv("airpassengers.csv", parse_dates=["Month"], index_col="Month")["Passengers"]
+train = ap[:"1958"]
+test = ...                   # từ 1959 đến hết: ap["1959":]
+
+naive = np.full(len(test), train.iloc[-1])
+mot_nam = train.iloc[-12:].values
+seasonal_naive = np.concatenate([mot_nam, mot_nam])          # 24 tháng test
+moving_avg = np.full(len(test), train.iloc[-12:].mean())
+
+mae = {
+    "naive": mean_absolute_error(test, naive),
+    "seasonal naive": ...,   # MAE của seasonal_naive
+    "moving average": mean_absolute_error(test, moving_avg),
+}
+
+ax = ap.plot(figsize=(9, 3.4), label="Thực tế", color="black")
+pd.Series(seasonal_naive, index=test.index).plot(ax=ax, label="Seasonal naive")
+pd.Series(naive, index=test.index).plot(ax=ax, label="Naive")
+ax.legend()
+print({k: round(v, 1) for k, v in mae.items()})`}
+tests={[
+  { code: "assert len(test) == 24 and test.index.min() == pd.Timestamp('1959-01-01') and train.index.max() < test.index.min()", message: "Chia theo thời gian: train đến hết 1958, test 1959–1960" },
+  { code: "assert abs(mae['seasonal naive'] - mean_absolute_error(test, seasonal_naive)) < 1e-9", message: "Tính đúng MAE seasonal naive" },
+  { code: "assert mae['seasonal naive'] < mae['naive'], 'Seasonal naive phải thắng naive'", message: "Seasonal naive thắng naive (chuỗi có mùa vụ)" },
+]} />
+
+Seasonal naive vẫn đoán thấp vì không tính đến **trend tăng**: năm sau luôn đông hơn năm trước.
+
+## Bài 14.3. Exponential smoothing <span class="badge">[5]</span>
+
+**Exponential smoothing** (làm mượt hàm mũ) dự báo bằng trung bình có trọng số của quá khứ, trong đó **dữ liệu gần đây có trọng số lớn hơn**. Phiên bản Holt-Winters tách riêng ba phần: mức hiện tại, trend và seasonality, nên xử lý được chuỗi như AirPassengers. Bạn chỉ cần chạy code mẫu và đọc MAE.
+
+<PythonCell client:visible id="w14-py-es" title="Holt-Winters so với các baseline" code={`import numpy as np
+import pandas as pd
+from statsmodels.tsa.holtwinters import ExponentialSmoothing
+from sklearn.metrics import mean_absolute_error
+
+ap = pd.read_csv("airpassengers.csv", parse_dates=["Month"], index_col="Month")["Passengers"].asfreq("MS")
+train, test = ap[:"1958"], ap["1959":]
+
+model = ExponentialSmoothing(train, trend="add", seasonal="mul", seasonal_periods=12).fit()
+du_bao = model.forecast(len(test))
+mae_es = ...                 # MAE của du_bao trên test
+
+mot_nam = train.iloc[-12:].values
+mae_snaive = mean_absolute_error(test, np.concatenate([mot_nam, mot_nam]))
+
+ax = ap.plot(figsize=(9, 3.4), label="Thực tế", color="black")
+du_bao.plot(ax=ax, label="Holt-Winters"); ax.legend()
+print(f"MAE Holt-Winters: {mae_es:.1f} | MAE seasonal naive: {mae_snaive:.1f}")`}
+tests={[
+  { code: "assert abs(mae_es - mean_absolute_error(test, du_bao)) < 1e-9", message: "Tính đúng MAE Holt-Winters" },
+  { code: "assert mae_es < mae_snaive, 'Holt-Winters phải thắng seasonal naive'", message: "Holt-Winters thắng seasonal naive" },
+]} />
+
+## Bài 14.4. Dự báo luôn có sai số <span class="badge">[6]</span>
+
+Dự báo "tháng sau bán 1.000 đơn" gần như chắc chắn sai: câu hỏi chỉ là sai bao nhiêu. Người dùng dự báo (mua hàng, nhân sự, tài chính) cần biết **khoảng** để quyết định tồn kho an toàn, ngân sách dự phòng.
+
+Một cách đơn giản để có khoảng: **backtest**. Giả vờ đứng ở quá khứ, dự báo giai đoạn đã biết đáp án, đo sai số, rồi dùng phân phối sai số đó để tạo khoảng cho dự báo mới.
+
+<div class="callout">**Ý chính bắt buộc:** luôn trình bày dự báo kèm khoảng, ví dụ "dự kiến 1.000 đơn, 80% khả năng trong khoảng 850–1.150", không chỉ một con số.</div>
+
+<PythonCell client:visible id="w14-py-interval" title="Khoảng dự báo từ sai số backtest" code={`import numpy as np
+import pandas as pd
+from statsmodels.tsa.holtwinters import ExponentialSmoothing
+
+ap = pd.read_csv("airpassengers.csv", parse_dates=["Month"], index_col="Month")["Passengers"].asfreq("MS")
+
+# Backtest: đứng ở cuối 1957, dự báo 1958 (đã biết đáp án)
+train_bt, test_bt = ap[:"1957"], ap["1958"]
+du_bao_bt = ExponentialSmoothing(train_bt, trend="add", seasonal="mul", seasonal_periods=12).fit().forecast(12)
+sai_so_pct = (test_bt.values - du_bao_bt.values) / du_bao_bt.values   # sai số theo %
+
+# Dự báo thật: đứng ở cuối 1960, dự báo 12 tháng 1961
+du_bao = ExponentialSmoothing(ap, trend="add", seasonal="mul", seasonal_periods=12).fit().forecast(12)
+thap = du_bao * (1 + np.quantile(sai_so_pct, 0.1))
+cao = ...                    # du_bao * (1 + phân vị 0.9 của sai_so_pct)
+
+bang = pd.DataFrame({"Dự báo": du_bao.round(), "Thấp (P10)": thap.round(), "Cao (P90)": cao.round()})
+ax = ap["1958":].plot(figsize=(9, 3.4), color="black", label="Thực tế")
+du_bao.plot(ax=ax, label="Dự báo 1961")
+ax.fill_between(du_bao.index, thap, cao, alpha=0.25, label="Khoảng 80%"); ax.legend()
+bang.head(6)`}
+tests={[
+  { code: "assert np.allclose(cao, du_bao * (1 + np.quantile(sai_so_pct, 0.9)))", message: "Tính đúng cận trên P90" },
+  { code: "assert (cao > thap).all()", message: "Khoảng có độ rộng dương ở mọi tháng" },
+]} />
+
+<Quiz client:visible id="w14-q-ts" questions={[
+  { q: "Dữ liệu doanh số theo ngày 3 năm được chia train/test ngẫu nhiên 80/20. Vấn đề là gì?", options: ["Không có vấn đề", "Model dùng tương lai để đoán quá khứ; điểm test đẹp hơn thực tế", "Test quá nhỏ"], answer: 1, explain: "Với chuỗi thời gian phải chia theo mốc thời gian." },
+  { q: "Chuỗi có mùa vụ năm rõ rệt. Baseline nào hợp lý nhất?", options: ["Naive", "Seasonal naive", "Đoán 0"], answer: 1, explain: "Seasonal naive lấy cùng tháng năm trước, nắm được mùa vụ." },
+  { q: "Cách trình bày dự báo nào hữu ích nhất cho bộ phận mua hàng?", options: ["Tháng sau bán 1.000 đơn", "Tháng sau dự kiến 1.000 đơn, 80% khả năng trong 850–1.150", "Tháng sau bán nhiều hơn tháng này"], answer: 1, explain: "Khoảng giúp quyết định tồn kho an toàn." },
+]} />
+
+## Luyện tập tình huống
+
+<Situation client:visible id="w14-th-random" title="Tình huống: chia ngẫu nhiên dữ liệu theo ngày" context="Một analyst xây model dự báo doanh số theo ngày từ dữ liệu 3 năm. Họ dùng train_test_split ngẫu nhiên 80/20 và báo cáo MAE test rất thấp. Model dùng các feature như doanh số của ngày hôm trước và ngày hôm sau." question="Cách chia này có vấn đề gì? Nên làm lại thế nào?">
+
+**Đáp án mẫu**
+
+- **Sai:** chia ngẫu nhiên làm các ngày trong test nằm xen giữa các ngày train, model dùng thông tin **tương lai** (ngày sau) để đoán. Feature "doanh số ngày hôm sau" còn là **data leakage** rõ ràng.
+- **Làm lại:** chia theo thời gian (ví dụ train 2 năm đầu, test năm thứ 3); chỉ dùng feature có sẵn tại thời điểm dự báo; so với baseline seasonal naive.
+
+</Situation>
+
+<Situation client:visible id="w14-th-1000" title="Tình huống: 'tháng sau bán đúng 1.000 đơn'" context="Bộ phận kế hoạch nhận báo cáo dự báo: 'Tháng sau bán 1.000 đơn.' Bộ phận mua hàng đặt đúng 1.000 bộ nguyên liệu. Sai số dự báo trong backtest 12 tháng qua dao động từ −15% đến +15%." question="Cách dùng dự báo này có vấn đề gì? Nên trình bày và dùng dự báo thế nào?">
+
+**Đáp án mẫu**
+
+- **Thiếu khoảng sai số.** Với sai số lịch sử ±15%, thực tế có thể từ khoảng **850 đến 1.150** đơn. Đặt đúng 1.000 thì dễ thiếu hàng khi bán tốt, hoặc tồn kho khi bán kém.
+- **Nên trình bày:** "dự kiến 1.000 đơn, 80% khả năng trong 850–1.150", kèm phương pháp và sai số backtest.
+- **Nên dùng:** mua hàng quyết định mức đặt dựa trên chi phí thiếu hàng so với chi phí tồn kho (ví dụ đặt 1.100 nếu thiếu hàng tốn kém hơn).
+
+</Situation>
+
+## Tóm tắt tuần và chuẩn bị Checkpoint 5
+
+- Chuỗi thời gian: chia theo thời gian, không chia ngẫu nhiên.
+- Baseline: naive, seasonal naive, moving average. Model phải thắng chúng.
+- Exponential smoothing (Holt-Winters) tách mức, trend, mùa vụ.
+- Dự báo luôn kèm khoảng; khoảng lấy từ sai số backtest.
+
+<div class="callout">**Checkpoint 5** (cuối tuần này): phần A giải thích closed-book overfitting, baseline, chi phí FP/FN, train quá khứ test tương lai [7], data leakage, dự báo kèm khoảng [6]; phần B: Iris, precision/recall, Wine Quality, AirPassengers, đã có ở các ô code tuần 12–14; phần C 5 tình huống (gian lận 99%, churn 98%, chia ngẫu nhiên, bệnh và spam, 1.000 đơn). Đạt khi đủ ý chính, 100% assert pass, và đúng ≥ 4/5 tình huống. Xem Sổ tay Phase 5.</div>

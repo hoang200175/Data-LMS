@@ -1,0 +1,47 @@
+---
+import Base from '../../layouts/Base.astro';
+---
+<Base title="Sổ tay Phase 5">
+  <p class="muted no-print">Sổ tay tóm tắt để ôn nhanh hoặc in ra. <button onclick="window.print()">In / Lưu PDF</button></p>
+  <h1>Sổ tay Phase 5: Dự báo</h1>
+
+  <h2>Tuần 12. Nguyên lý machine learning</h2>
+  <table>
+    <tr><th>Khái niệm</th><th>Nhớ một câu</th></tr>
+    <tr><td>Supervised / unsupervised</td><td>Có đáp án để học / không có đáp án, tự tìm cấu trúc.</td></tr>
+    <tr><td>Train / test</td><td>Học trên train, chấm điểm trên test chưa thấy. Test dùng một lần.</td></tr>
+    <tr><td>Baseline</td><td>Model phải thắng cách đoán ngây thơ thì mới có giá trị.</td></tr>
+    <tr><td>Overfitting</td><td>Train cao, test thấp: học thuộc nhiễu. Dùng model đơn giản hơn.</td></tr>
+    <tr><td>Data leakage</td><td>Feature chưa thể có lúc dự báo. Kết quả đẹp bất thường là dấu hiệu.</td></tr>
+  </table>
+
+  <h2>Tuần 13. Phân loại và hồi quy</h2>
+  <table>
+    <tr><th>Khái niệm</th><th>Nhớ một câu</th></tr>
+    <tr><td>FP / FN</td><td>Báo nhầm / bỏ sót. Sàng lọc bệnh: tránh FN. Lọc spam: tránh FP.</td></tr>
+    <tr><td>Precision</td><td>TP / (TP + FP): trong các ca báo "có", đúng bao nhiêu.</td></tr>
+    <tr><td>Recall</td><td>TP / (TP + FN): trong các ca "có" thật, bắt được bao nhiêu.</td></tr>
+    <tr><td>Accuracy</td><td>Đánh lừa khi mất cân bằng: 1% gian lận thì đoán "không" đã đạt 99%.</td></tr>
+    <tr><td>MAE</td><td>Trung bình sai lệch tuyệt đối. So với baseline "đoán trung bình".</td></tr>
+    <tr><td>Tree / logistic</td><td>Cây: chuỗi câu hỏi có/không. Logistic: xác suất thuộc lớp, chọn ngưỡng.</td></tr>
+  </table>
+
+  <h2>Tuần 14. Chuỗi thời gian</h2>
+  <table>
+    <tr><th>Khái niệm</th><th>Nhớ một câu</th></tr>
+    <tr><td>Chia theo thời gian</td><td>Train bằng quá khứ, test bằng tương lai. Không chia ngẫu nhiên.</td></tr>
+    <tr><td>Baseline</td><td>Naive, seasonal naive, moving average. Có mùa vụ thì seasonal naive.</td></tr>
+    <tr><td>Exponential smoothing</td><td>Gần đây nặng hơn; Holt-Winters có mức, trend, mùa vụ.</td></tr>
+    <tr><td>Khoảng dự báo</td><td>Lấy từ sai số backtest. "1.000 đơn, 80% trong 850–1.150".</td></tr>
+  </table>
+
+  <h2>Checkpoint 5: ý chính phần A</h2>
+  <ul>
+    <li><strong>Overfitting:</strong> điểm train cao, điểm test thấp; model học thuộc noise.</li>
+    <li><strong>Baseline:</strong> model phải thắng được cách đoán ngây thơ thì mới có giá trị.</li>
+    <li><strong>FP và FN:</strong> tuỳ bài toán mà ưu tiên giảm loại sai nào; ví dụ lọc spam và sàng lọc bệnh.</li>
+    <li><strong>Train quá khứ, test tương lai:</strong> chia ngẫu nhiên với dữ liệu thời gian thì model "nhìn thấy tương lai".</li>
+    <li><strong>Data leakage:</strong> feature chứa thông tin mà tại thời điểm dự báo chưa thể có.</li>
+    <li><strong>Dự báo có sai số:</strong> luôn trình bày dự báo kèm khoảng.</li>
+  </ul>
+</Base>
