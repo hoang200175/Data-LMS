@@ -1,0 +1,16 @@
+front,back,tag
+"5 tiêu chí data quality là gì?","Đủ (không thiếu dòng/giá trị), đúng (khớp thực tế), nhất quán (cùng định nghĩa, định dạng giữa các nguồn), kịp thời (cập nhật đúng hạn), duy nhất (không trùng bản ghi).",tuan-05
+"Cột Region có cả ""East"", ""east"" và ""EAST"". Vi phạm tiêu chí nào? Hậu quả?","Nhất quán. Groupby sẽ tách thành 3 nhóm, doanh thu East bị chia nhỏ. Chuẩn hoá (ví dụ .str.title()) trước khi tổng hợp.",tuan-05
+"Báo cáo sáng thứ Hai chỉ có dữ liệu đến thứ Năm tuần trước. Vi phạm tiêu chí nào?","Kịp thời. Số liệu đúng nhưng cũ, quyết định dựa vào nó có thể lỡ diễn biến mới. Luôn ghi rõ dữ liệu tính đến ngày nào.",tuan-05
+"Fan-out khi join là gì?","Khi nối bảng A với bảng B mà một khoá ở A khớp nhiều dòng ở B, mỗi dòng A bị nhân lên. Cộng measure của A sau join sẽ bị phình to.",tuan-05
+"Đơn hàng Sales 1.000 USD join với bảng 3 lần giao hàng cùng Order ID. Tổng Sales sau join?","3.000 USD, gấp 3 lần thực tế, vì dòng đơn bị nhân thành 3. Phải tổng hợp bảng giao hàng về 1 dòng/đơn trước, hoặc cộng Sales trước khi join.",tuan-05
+"Cách phát hiện fan-out nhanh nhất?","Đối soát: so số dòng và tổng measure trước và sau merge. Nếu len(df) hoặc df['Sales'].sum() tăng mà không chủ ý thì có fan-out. pandas: merge(..., validate='many_to_one').",tuan-05
+"Average of averages là gì, vì sao nguy hiểm?","Lấy trung bình của các trung bình/tỷ lệ nhóm mà không tính quy mô nhóm. Nhóm nhỏ được tính nặng ngang nhóm lớn, nên kết quả khác tỷ lệ chung.",tuan-05
+"Cửa hàng A: 90/100 đơn đúng hạn. Cửa hàng B: 10/20. Tỷ lệ đúng hạn chung?","Đúng: (90 + 10) / (100 + 20) = 100/120 ≈ 83,3%. Sai: trung bình (90% + 50%) / 2 = 70%.",tuan-05
+"Weighted average tính thế nào?","Tổng (giá trị × trọng số) / tổng trọng số. Với tỷ lệ: cộng tử số và cộng mẫu số rồi mới chia, không lấy trung bình các tỷ lệ.",tuan-05
+"Simpson's paradox là gì?","Xu hướng thấy trong từng nhóm bị đảo ngược khi gộp các nhóm lại, do quy mô các nhóm phân bố khác nhau giữa hai bên so sánh.",tuan-05
+"Kênh A thắng kênh B ở cả khách mới lẫn khách cũ, nhưng tỷ lệ chuyển đổi tổng lại thua. Có thể không?","Có (Simpson's paradox). Ví dụ A phần lớn là khách mới (chuyển đổi thấp), B phần lớn là khách cũ (chuyển đổi cao). Khi gộp, cơ cấu khách kéo tỷ lệ chung của A xuống.",tuan-05
+"Gặp Simpson's paradox thì nên tin số gộp hay số tách nhóm?","Tuỳ câu hỏi và cơ chế. Nếu nhóm (khách mới/cũ) ảnh hưởng kết quả và cơ cấu khác nhau, so sánh theo từng nhóm công bằng hơn. Luôn kiểm tra cơ cấu trước khi kết luận từ số gộp.",tuan-05
+"Câu hỏi bắt buộc khi gặp missing values?","Vì sao thiếu? Thiếu ngẫu nhiên hay có lý do (ví dụ đơn bị huỷ không có Ship Date)? Xoá các dòng thiếu thì mẫu còn đại diện không?",tuan-05
+"Python/pandas: đếm giá trị thiếu theo cột?","df.isna().sum(). Xem tỷ lệ: df.isna().mean(). Trước khi dropna() hãy so phân phối của nhóm thiếu và nhóm đủ.",tuan-05
+"Python/pandas: thói quen đối soát sau mỗi bước biến đổi?","Ghi lại len(df) và df['Sales'].sum() trước, sau mỗi bước (lọc, merge, groupby) so lại; mọi chênh lệch phải giải thích được.",tuan-05

@@ -14,12 +14,16 @@ media:
     title: Video tóm tắt Tuần 5
     lang: Tiếng Việt
   - kind: audio
-    title: Podcast Tuần 5
+    title: "Podcast: Bẫy tổng hợp trong báo cáo"
+    src: audio/tuan-05.mp3
     lang: Tiếng Việt
+    minutes: 7
+    note: Podcast ngắn về data quality, fan-out khi merge, average of averages và Simpson's paradox. Nghe trước hoặc sau khi đọc bài.
 ---
 import PythonCell from '../../components/PythonCell.tsx';
 import Quiz from '../../components/Quiz.tsx';
 import Situation from '../../components/Situation.tsx';
+import Flashcards from '../../components/Flashcards.astro';
 
 Tuần 4 dạy cách tóm tắt dữ liệu. Tuần này dạy cách **không bị dữ liệu lừa**: dữ liệu bẩn, join sai, và trung bình tính sai cách là ba nguồn gây ra con số sai phổ biến nhất trong báo cáo.
 
@@ -287,6 +291,12 @@ tests={[
 **Lỗi hay gặp:** coi dropna là "trung lập"; chỉ báo con số mà không nói 30% bị thiếu.
 
 </Situation>
+
+## Ôn bằng thẻ ghi nhớ
+
+15 thẻ ôn lại các khái niệm của tuần. Thẻ "chưa nhớ" sẽ quay lại cuối lượt.
+
+<Flashcards deck="tuan-05" />
 
 ## Tóm tắt tuần
 
