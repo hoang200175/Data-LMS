@@ -55,3 +55,4 @@ Workflow `.github/workflows/deploy.yml` build và đưa site lên GitHub Pages m
 Mỗi tuần có trường `review` trong frontmatter: `nhap` (mặc định, trang hiện nhãn "Bản nháp, đang chờ duyệt") hoặc `da-duyet`. Claude soạn nháp, anh Hoang duyệt rồi đổi sang `da-duyet`.
 
 Phase 5 dùng `winequality_red.csv` (Wine Quality, Cortez et al. 2009, UCI, CC BY 4.0) và `airpassengers.csv` (Box & Jenkins, AirPassengers 1949–1960). Iris lấy trực tiếp từ `sklearn.datasets.load_iris`.
+- AI nhận xét bài làm: xem `docs/ai-nhan-xet.md`.
