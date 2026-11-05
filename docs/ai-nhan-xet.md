@@ -36,3 +36,7 @@ Lưu ý hay gặp:
 - Mỗi lần nhận xét dùng mức suy nghĩ thấp và tối đa 2.000 token trả lời; ước tính khoảng 0,01–0,04 USD một lần.
 - Mỗi người (hoặc mỗi IP khi chưa có Access) tối đa khoảng 6 lần mỗi phút.
 - Khi site còn công khai, ai biết địa chỉ cũng gọi được, nên hạn mức chi tiêu ở bước 2 là bắt buộc. Sau khi bật Access, đặt `AI_REQUIRE_ACCESS=1`.
+
+## Lỗi 403 "Request not allowed"
+
+Cloudflare mặc định chạy hàm ở trạm gần người dùng. Từ Việt Nam, trạm đó có thể là Hồng Kông, nơi Claude API không phục vụ, nên API trả 403. File `wrangler.toml` ở gốc repo đặt `placement` cho hàm chạy ở Mỹ (`aws:us-east-1`). Vì có `wrangler.toml`, các biến thường (BASE_PATH, SITE_URL, NODE_VERSION) giờ khai báo trong file đó; riêng Secret vẫn đặt trên dashboard.

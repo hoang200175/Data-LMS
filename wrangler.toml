@@ -1,0 +1,15 @@
+# Cấu hình Cloudflare Pages cho data-lms.
+# placement: chạy hàm /api/feedback ở Mỹ. Chạy ở trạm gần người dùng (ví dụ Hồng Kông) thì Claude API trả 403 "Request not allowed".
+# Secret ANTHROPIC_API_KEY vẫn đặt trên dashboard (không ghi vào file này).
+name = "data-lms"
+pages_build_output_dir = "./dist"
+compatibility_date = "2026-10-01"
+
+[placement]
+mode = "targeted"
+region = "aws:us-east-1"
+
+[vars]
+BASE_PATH = "/"
+SITE_URL = "https://data-lms.pages.dev"
+NODE_VERSION = "22"
